@@ -507,6 +507,10 @@ RC DiskBufferPool::flush_page_internal(Frame &frame)
   return RC::SUCCESS;
 }
 
+std::string DiskBufferPool::file_name() const {
+  return file_name_;
+}
+
 RC DiskBufferPool::flush_all_pages()
 {
   std::list<Frame *> used = frame_manager_.find_list(file_desc_);
@@ -668,6 +672,18 @@ RC BufferPoolManager::create_file(const char *file_name)
   close(fd);
   LOG_INFO("Successfully create %s.", file_name);
   return RC::SUCCESS;
+}
+
+RC BufferPoolManager::remove_file(const char *file_name) {
+  RC rc = close_file(file_name);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  int remove_ret = 0;
+  if ((remove_ret = ::remove(file_name)) == -1);
+
+  return rc;
 }
 
 RC BufferPoolManager::open_file(const char *_file_name, DiskBufferPool *&_bp)

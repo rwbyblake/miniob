@@ -444,6 +444,11 @@ public:
    */
   RC create(
       const char *file_name, AttrType attr_type, int attr_length, int internal_max_size = -1, int leaf_max_size = -1);
+      
+  /**
+   * 删除indexHandler对应的索引文件
+   */
+  RC drop();
 
   /**
    * 打开名为fileName的索引文件。
