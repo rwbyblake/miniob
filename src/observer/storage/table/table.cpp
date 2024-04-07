@@ -122,6 +122,39 @@ RC Table::create(int32_t table_id, const char *path, const char *name, const cha
   return rc;
 }
 
+/**
+ * 删除表, 创建表的逆过程
+ * @param path 删除表的元数据文件
+ */
+RC Table::drop(const char *path) {
+  RC rc = RC::SUCCESS;
+  // drop index
+  for (auto index : indexes_) {
+    index->drop();
+  }
+
+  // destroy recrod handler
+  record_handler_->close();
+  delete record_handler_;
+  record_handler_ = nullptr;
+
+  // destroy buffer_pool and remove data file
+  BufferPoolManager &bpm = BufferPoolManager::instance();
+  std::string data_file = table_data_file(base_dir_.c_str(), table_meta_.name());
+  rc = bpm.remove_file(data_file.c_str());
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to remove disk buffer pool of data file. file name=%s", data_file.c_str());
+    return rc;
+  }
+
+  // destroy mate file
+  int remove_ret = ::remove(path);
+  if (remove_ret == -1) {
+    LOG_ERROR("Failed to remove mate file. file name=%s. error details: %s", path, strerror(errno));
+  }
+  return rc;
+}
+
 RC Table::open(const char *meta_file, const char *base_dir)
 {
   // 加载元数据文件

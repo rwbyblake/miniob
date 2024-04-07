@@ -1,16 +1,15 @@
 #ifndef MINIOB_COMMON_TIME_DATE_H
 #define MINIOB_COMMON_TIME_DATE_H
-
 #include <stdint.h>
-#include <stdio.h>
 #include <string>
+#include <stdio.h>
 #include "rc.h"
 
 inline bool is_leap_year(int year) {
     return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
 }
 
-inline RC str_to_date(const char *str, int32_t &date) {
+inline RC str_to_date(const char *str, int &date) {
     int year = 0;
     int month = 0;
     int day = 0;
@@ -19,15 +18,16 @@ inline RC str_to_date(const char *str, int32_t &date) {
         return RC::INVALID_ARGUMENT;
     }
 
-    if (year < 1900 || year > 9999 ||
+    if (year <= 1900 || year >= 9999 ||
         (month < 0 || month > 12) ||
         (day <= 0 || day > 31)) {
             return RC::INVALID_ARGUMENT;
     }
 
-    int max_day_in_month[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    const int max_day = max_day_in_month[month - 1];
-    if (day > max_day) {
+
+    int dayInMonth[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    const int currentDay = dayInMonth[month - 1];
+    if (day > currentDay) {
         return RC::INVALID_ARGUMENT;
     }
 
@@ -38,11 +38,8 @@ inline RC str_to_date(const char *str, int32_t &date) {
     return RC::SUCCESS;
 }
 
-/**
- * 把日期转为字符串
- * @param date 一个20230601格式的整数
- */
-inline std::string date_to_str(int32_t date) {
+inline std::string date_to_str(int date)
+{
     char str[11] = {0};
     int day = date % 100;
     int month = (date / 100) % 100;
