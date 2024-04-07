@@ -39,6 +39,10 @@ RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, co
     file_name, index_meta.name(), index_meta.field());
   return RC::SUCCESS;
 }
+RC BplusTreeIndex::drop() {
+  index_handler_.drop();
+  return RC::SUCCESS;
+}
 
 RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta)
 {

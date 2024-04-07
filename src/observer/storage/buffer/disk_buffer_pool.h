@@ -249,6 +249,11 @@ public:
    * 刷新所有页面到磁盘，即使pin count不是0
    */
   RC flush_all_pages();
+  
+    /**
+   * 获取buffer_pool对应的文件名
+   */
+  std::string file_name() const;
 
   /**
    * 回放日志时处理page0中已被认定为不存在的page
@@ -301,6 +306,7 @@ public:
   ~BufferPoolManager();
 
   RC create_file(const char *file_name);
+  RC remove_file(const char *file_name);
   RC open_file(const char *file_name, DiskBufferPool *&bp);
   RC close_file(const char *file_name);
 
