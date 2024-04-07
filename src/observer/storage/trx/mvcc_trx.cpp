@@ -146,6 +146,20 @@ RC MvccTrx::insert_record(Table *table, Record &record)
   return rc;
 }
 
+
+RC MvccTrx::update_record(Table *table, Record &record, int offset, int index, Value &value) {
+  Field begin_field;
+  Field end_field;
+  trx_fields(table, begin_field, end_field);
+
+  begin_field.set_int(record, -trx_id_);
+  end_field.set_int(record, trx_kit_.max_trx_id());
+
+  RC rc = table->update_record(record, offset, index, value);
+  // TODO
+  return rc;
+}
+
 RC MvccTrx::delete_record(Table *table, Record &record)
 {
   Field begin_field;

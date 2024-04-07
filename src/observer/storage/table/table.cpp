@@ -204,6 +204,23 @@ RC Table::insert_record(Record &record)
   return rc;
 }
 
+RC Table::update_record(Record &record, int offset, int index, Value &value) {
+  RC rc = RC::SUCCESS;
+  Record origin_record(record);
+  rc = record_handler_->update_record(offset, index, value, record);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Update record failed. table name=%s, rc=%s", table_meta_.name(), strrc(rc));
+    return rc;
+  }
+  // 更新索引，稍微有点粗暴
+  for (auto index : indexes_) {
+    index->delete_entry(origin_record.data(), &origin_record.rid());
+    index->insert_entry(record.data(), &record.rid());
+  }
+  return rc;
+}
+
+
 RC Table::visit_record(const RID &rid, bool readonly, std::function<void(Record &)> visitor)
 {
   return record_handler_->visit_record(rid, readonly, visitor);

@@ -105,6 +105,7 @@ public:
     rid_   = other.rid_;
     data_  = other.data_;
     len_   = other.len_;
+    bitmap_len_ = other.bitmap_len_;
     owner_ = other.owner_;
 
     if (other.owner_) {
@@ -144,6 +145,7 @@ public:
   char       *data() { return this->data_; }
   const char *data() const { return this->data_; }
   int         len() const { return this->len_; }
+  int         bitmap_len() const { return this->bitmap_len_; }
 
   void set_rid(const RID &rid) { this->rid_ = rid; }
   void set_rid(const PageNum page_num, const SlotNum slot_num)
@@ -151,6 +153,10 @@ public:
     this->rid_.page_num = page_num;
     this->rid_.slot_num = slot_num;
   }
+  void set_bitmap_len(const int len) {
+    bitmap_len_ = len;
+  }
+
   RID       &rid() { return rid_; }
   const RID &rid() const { return rid_; }
 
@@ -159,5 +165,6 @@ private:
 
   char *data_  = nullptr;
   int   len_   = 0;      /// 如果不是record自己来管理内存，这个字段可能是无效的
+  int   bitmap_len_ = 0;  /// 数据中的位图长度
   bool  owner_ = false;  /// 表示当前是否由record来管理内存
 };
