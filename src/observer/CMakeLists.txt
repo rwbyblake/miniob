@@ -52,3 +52,5 @@ TARGET_LINK_LIBRARIES(observer_static ${LIBRARIES})
 INSTALL(TARGETS observer observer_static 
     RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
+
+# add_compile_options(-Wno-error -Wno-unused-variable) # 不将警告视为错误，忽略未使用变量警告

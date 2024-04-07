@@ -181,6 +181,8 @@ public:
    */
   RC delete_record(const RID *rid);
 
+  RC update_record(int offset, int index, Value &value, const Record &record);
+
   /**
    * @brief 获取指定位置的记录数据
    *
@@ -274,6 +276,9 @@ public:
    * @param record_size 记录大小
    * @param rid         返回该记录的标识符
    */
+  RC update_record(int offset, int index, Value &value, const Record &record);
+  
+
   RC insert_record(const char *data, int record_size, RID *rid);
 
   /**

@@ -1,6 +1,5 @@
 #ifndef MINIOB_COMMON_TIME_DATE_H
 #define MINIOB_COMMON_TIME_DATE_H
-
 #include <stdint.h>
 #include <string>
 #include <stdio.h>
@@ -24,6 +23,7 @@ inline RC str_to_date(const char *str, int &date) {
         (day <= 0 || day > 31)) {
             return RC::INVALID_ARGUMENT;
     }
+
 
     int dayInMonth[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     const int currentDay = dayInMonth[month - 1];

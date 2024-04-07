@@ -26,4 +26,7 @@ GPATH
 GTAGS
 docs/book
 #*#
+
+MiniOB_dataset/*
 data/*
+
