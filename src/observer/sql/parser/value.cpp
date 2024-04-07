@@ -16,9 +16,10 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/comparator.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"
+#include "common/date.h"
 #include <sstream>
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "booleans"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "booleans"};
 
 const char *attr_type_to_string(AttrType type)
 {
@@ -37,6 +38,7 @@ AttrType attr_type_from_string(const char *s)
   return UNDEFINED;
 }
 
+
 Value::Value(int val) { set_int(val); }
 
 Value::Value(float val) { set_float(val); }
@@ -51,7 +53,7 @@ void Value::set_data(char *data, int length)
     case CHARS: {
       set_string(data, length);
     } break;
-    case INTS: {
+    case INTS: case DATES:{
       num_value_.int_value_ = *(int *)data;
       length_               = length;
     } break;
@@ -99,6 +101,13 @@ void Value::set_string(const char *s, int len /*= 0*/)
   length_ = str_value_.length();
 }
 
+void Value::set_date(int date)
+{
+  attr_type_ = DATES;
+  num_value_.int_value_ = date;
+  length_ = sizeof(date);
+}
+
 void Value::set_value(const Value &value)
 {
   switch (value.attr_type_) {
@@ -114,6 +123,9 @@ void Value::set_value(const Value &value)
     case BOOLEANS: {
       set_boolean(value.get_boolean());
     } break;
+    case DATES: {
+      set_date(value.get_int());
+    }
     case UNDEFINED: {
       ASSERT(false, "got an invalid value type");
     } break;
@@ -148,6 +160,9 @@ std::string Value::to_string() const
     case CHARS: {
       os << str_value_;
     } break;
+    case DATES: {
+      os << date_to_str(num_value_.int_value_);
+    }
     default: {
       LOG_WARN("unsupported attr type: %d", attr_type_);
     } break;
@@ -159,7 +174,7 @@ int Value::compare(const Value &other) const
 {
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
-      case INTS: {
+      case INTS: case DATES:{
         return common::compare_int((void *)&this->num_value_.int_value_, (void *)&other.num_value_.int_value_);
       } break;
       case FLOATS: {
@@ -184,6 +199,12 @@ int Value::compare(const Value &other) const
   } else if (this->attr_type_ == FLOATS && other.attr_type_ == INTS) {
     float other_data = other.num_value_.int_value_;
     return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other_data);
+  } else if (this->attr_type_ == CHARS && other.attr_type_ == DATES) {
+    int date = get_date();
+    return common::compare_int((void *)&date, (void *)&other.num_value_.int_value_);
+  } else if (this->attr_type_ == DATES && other.attr_type_ == CHARS) {
+    int date = other.get_date();
+    return common::compare_int((void *)&this->num_value_.int_value_, (void *)&date);
   }
   LOG_WARN("not supported");
   return -1;  // TODO return rc?
@@ -200,7 +221,7 @@ int Value::get_int() const
         return 0;
       }
     }
-    case INTS: {
+    case INTS: case DATES:{
       return num_value_.int_value_;
     }
     case FLOATS: {
@@ -284,4 +305,56 @@ bool Value::get_boolean() const
     }
   }
   return false;
+}
+
+int Value::get_date() const {
+  switch (attr_type_)
+  {
+  case INTS: case DATES: {
+    return num_value_.int_value_;
+  }break;
+  case CHARS: {
+    int date = -1;
+    RC rc = str_to_date(str_value_.c_str(), date);
+    if (rc != RC::SUCCESS) LOG_WARN("Failed to conver data type. str=%s, target_type=%s", str_value_, "DATES");
+    return date;
+  }break;
+  
+  default: {
+    LOG_WARN("unknown data type. type=%s", attr_type_);
+    return 0;
+  }break;
+  }
+}
+
+
+RC type_change(AttrType target_type, Value &value) {
+  switch (target_type)
+      {
+      case CHARS: {
+        value.set_string(value.get_string().c_str());
+      }break;
+      case INTS: {
+        value.set_int(value.get_int());
+      }break;
+      case FLOATS: {
+        value.set_float(value.get_float());
+      }break;
+      case DATES: {
+        // value.set_date(value.get_date());
+        int date;
+        RC rc = str_to_date(value.get_string().c_str(), date);
+        if (rc != RC::SUCCESS) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        value.set_date(date);
+      }break;
+      case BOOLEANS: {
+        value.set_boolean(value.get_boolean());
+      }break;
+  
+      default: {
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+        break;
+      }
+      return RC::SUCCESS;
 }
