@@ -501,8 +501,12 @@ RC RecordPageHandler::update_record(int offset, int index, Value &value, const R
 
   // 修改数据
   char *change_loc = (char *)((uint64_t)(origin_data) + offset);
+  // size_t originalDataSize = strlen(change_loc);
+  // memset(change_loc, 0, originalDataSize);
   const char *data = value.data();
   memcpy(change_loc, data, value.length());
+  char *tail = change_loc + value.length();
+  *tail = 0;
   frame_->mark_dirty();
 
   return RC::SUCCESS;
