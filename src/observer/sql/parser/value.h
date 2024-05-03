@@ -28,6 +28,7 @@ enum AttrType
   INTS,      ///< 整数类型(4字节)
   FLOATS,    ///< 浮点数类型(4字节)
   DATES,     ///< 日期类型(4字节)
+  TEXTS,     ///< text类型，最大65535字节
   BOOLEANS,  ///< boolean类型，当前不是由parser解析出来的，是程序内部使用的
 };
 
@@ -62,6 +63,7 @@ public:
   void set_string(const char *s, int len = 0);
   void set_date(int date);
   void set_value(const Value &value);
+  void set_text(const char *s, int len = 0);
 
   std::string to_string() const;
 

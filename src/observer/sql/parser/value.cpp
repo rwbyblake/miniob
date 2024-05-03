@@ -18,8 +18,9 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/date.h"
 #include <sstream>
+#include "value.h"
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "booleans"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "booleans", "texts"};
 
 const char *attr_type_to_string(AttrType type)
 {
@@ -50,10 +51,10 @@ Value::Value(const char *s, int len /*= 0*/) { set_string(s, len); }
 void Value::set_data(char *data, int length)
 {
   switch (attr_type_) {
-    case CHARS: {
+    case CHARS:{
       set_string(data, length);
     } break;
-    case INTS: case DATES:{
+    case INTS:{
       num_value_.int_value_ = *(int *)data;
       length_               = length;
     } break;
@@ -64,6 +65,12 @@ void Value::set_data(char *data, int length)
     case BOOLEANS: {
       num_value_.bool_value_ = *(int *)data != 0;
       length_                = length;
+    } break;
+    case DATES: {
+      set_date(*(int *)data);
+    } break;
+    case TEXTS: {
+      set_text(data, length);
     } break;
     default: {
       LOG_WARN("unknown data type: %d", attr_type_);
@@ -117,7 +124,7 @@ void Value::set_value(const Value &value)
     case FLOATS: {
       set_float(value.get_float());
     } break;
-    case CHARS: {
+    case CHARS: case TEXTS:{
       set_string(value.get_string().c_str());
     } break;
     case BOOLEANS: {
@@ -125,17 +132,27 @@ void Value::set_value(const Value &value)
     } break;
     case DATES: {
       set_date(value.get_int());
-    }
+    } break;
     case UNDEFINED: {
       ASSERT(false, "got an invalid value type");
     } break;
   }
 }
 
+void        Value::set_text(const char *s, int len) {
+  attr_type_ = TEXTS;
+  if (len > 0) {
+    len = strnlen(s, len);
+    str_value_.assign(s, len);
+  } else {
+    str_value_.assign(s);
+  }
+  length_ = str_value_.length();
+}
 const char *Value::data() const
 {
   switch (attr_type_) {
-    case CHARS: {
+    case CHARS: case TEXTS:{
       return str_value_.c_str();
     } break;
     default: {
@@ -157,7 +174,7 @@ std::string Value::to_string() const
     case BOOLEANS: {
       os << num_value_.bool_value_;
     } break;
-    case CHARS: {
+    case CHARS: case TEXTS:{
       os << str_value_;
     } break;
     case DATES: {
@@ -180,7 +197,7 @@ int Value::compare(const Value &other) const
       case FLOATS: {
         return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other.num_value_.float_value_);
       } break;
-      case CHARS: {
+      case CHARS: case TEXTS:{
         return common::compare_string((void *)this->str_value_.c_str(),
             this->str_value_.length(),
             (void *)other.str_value_.c_str(),
@@ -213,7 +230,7 @@ int Value::compare(const Value &other) const
 int Value::get_int() const
 {
   switch (attr_type_) {
-    case CHARS: {
+    case CHARS: case TEXTS:{
       try {
         return (int)(std::stol(str_value_));
       } catch (std::exception const &ex) {
@@ -241,7 +258,7 @@ int Value::get_int() const
 float Value::get_float() const
 {
   switch (attr_type_) {
-    case CHARS: {
+    case CHARS: case TEXTS:{
       try {
         return std::stof(str_value_);
       } catch (std::exception const &ex) {
@@ -271,7 +288,7 @@ std::string Value::get_string() const { return this->to_string(); }
 bool Value::get_boolean() const
 {
   switch (attr_type_) {
-    case CHARS: {
+    case CHARS: case TEXTS:{
       try {
         float val = std::stof(str_value_);
         if (val >= EPSILON || val <= -EPSILON) {
@@ -313,7 +330,7 @@ int Value::get_date() const {
   case INTS: case DATES: {
     return num_value_.int_value_;
   }break;
-  case CHARS: {
+  case CHARS: case TEXTS:{
     int date = -1;
     RC rc = str_to_date(str_value_.c_str(), date);
     if (rc != RC::SUCCESS) LOG_WARN("Failed to conver data type. str=%s, target_type=%s", str_value_, "DATES");
@@ -350,7 +367,13 @@ RC type_change(AttrType target_type, Value &value) {
       case BOOLEANS: {
         value.set_boolean(value.get_boolean());
       }break;
-  
+      case TEXTS: {
+        if (value.length() > 65535) {
+          LOG_ERROR("Text length exceeds.");
+          return RC::SCHEMA_FILED_LENGTH_EXCEEDS;
+        }
+        value.set_text(value.get_string().c_str());
+      }break;
       default: {
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }

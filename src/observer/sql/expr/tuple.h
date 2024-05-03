@@ -157,7 +157,19 @@ public:
     FieldExpr       *field_expr = speces_[index];
     const FieldMeta *field_meta = field_expr->field().meta();
     cell.set_type(field_meta->type());
-    cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    if (field_meta->type() == TEXTS) {
+      // 从record_->data()中获取PageNum
+      PageNum begin_page_num = *(reinterpret_cast<const PageNum *>(this->record_->data() + field_meta->offset()));
+      // PageNum begin_rid = (this->record_->data() + field_meta->offset(), field_meta->len());
+      std::string data;
+      if (table_->get_text(begin_page_num, data) != RC::SUCCESS) {
+        return RC::INTERNAL;
+      }
+      cell.set_data(data.c_str(), data.size());
+    } else {
+      cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    }
+    
     return RC::SUCCESS;
   }
 
