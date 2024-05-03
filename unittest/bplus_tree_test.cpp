@@ -315,9 +315,9 @@ TEST(test_bplus_tree, test_leaf_index_node_handle)
   index_file_header.root_page         = BP_INVALID_PAGE_NUM;
   index_file_header.internal_max_size = 5;
   index_file_header.leaf_max_size     = 5;
-  index_file_header.attr_length       = 4;
+  index_file_header.attr_length[0]       = 4;
   index_file_header.key_length        = 4 + sizeof(RID);
-  index_file_header.attr_type         = INTS;
+  index_file_header.attr_type[0]         = INTS;
 
   Frame frame;
 
@@ -372,9 +372,9 @@ TEST(test_bplus_tree, test_internal_index_node_handle)
   index_file_header.root_page         = BP_INVALID_PAGE_NUM;
   index_file_header.internal_max_size = 5;
   index_file_header.leaf_max_size     = 5;
-  index_file_header.attr_length       = 4;
+  index_file_header.attr_length[0]       = 4;
   index_file_header.key_length        = 4 + sizeof(RID);
-  index_file_header.attr_type         = INTS;
+  index_file_header.attr_type[0]         = INTS;
 
   Frame frame;
 

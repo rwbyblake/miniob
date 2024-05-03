@@ -27,30 +27,32 @@ const static Json::StaticString FIELD_VISIBLE("visible");
 
 FieldMeta::FieldMeta() : attr_type_(AttrType::UNDEFINED), attr_offset_(-1), attr_len_(0), visible_(false) {}
 
-FieldMeta::FieldMeta(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible)
+FieldMeta::FieldMeta(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, bool nullable)
 {
-  [[maybe_unused]] RC rc = this->init(name, attr_type, attr_offset, attr_len, visible);
+  [[maybe_unused]] RC rc = this->init(name, attr_type, attr_offset, attr_len, visible, nullable);
   ASSERT(rc == RC::SUCCESS, "failed to init field meta. rc=%s", strrc(rc));
 }
 
-RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible)
+RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, bool nullable)
 {
   if (common::is_blank(name)) {
     LOG_WARN("Name cannot be empty");
     return RC::INVALID_ARGUMENT;
   }
 
-  if (AttrType::UNDEFINED == attr_type || attr_offset < 0 || attr_len <= 0) {
-    LOG_WARN("Invalid argument. name=%s, attr_type=%d, attr_offset=%d, attr_len=%d",
-              name, attr_type, attr_offset, attr_len);
+  if (AttrType::UNDEFINED >= attr_type || AttrType::NULLS <= attr_type || attr_offset < 0 || attr_len <= 0) {
+    LOG_WARN(
+        "Invalid argument. name=%s, attr_type=%d, attr_offset=%d, attr_len=%d", name, attr_type, attr_offset, attr_len);
     return RC::INVALID_ARGUMENT;
   }
 
-  name_        = name;
-  attr_type_   = attr_type;
-  attr_len_    = attr_len;
+  name_ = name;
+  attr_type_ = attr_type;
+  attr_len_ = attr_len;
   attr_offset_ = attr_offset;
-  visible_     = visible;
+  visible_ = visible;
+  nullable_ = nullable;
+  // if (TEXTS == attr_type) { attr_len_ = TEXT_FIELD_LENGTH; }
 
   LOG_INFO("Init a field with name=%s", name);
   return RC::SUCCESS;

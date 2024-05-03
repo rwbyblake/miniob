@@ -124,6 +124,15 @@ const FieldMeta *TableMeta::field(const char *name) const
   return nullptr;
 }
 
+const FieldMeta *TableMeta::null_field() const
+{
+  return &fields_[0];
+}
+
+// const std::pair<const FieldMeta *, int> TableMeta::trx_fields() const
+// {
+//   return std::pair<const FieldMeta *, int>{fields_.data() + 1, trx_field_num()};
+// }
 const FieldMeta *TableMeta::field(const char *name, int &index) const {
   if (nullptr == name) {
     return nullptr;
@@ -149,6 +158,19 @@ const FieldMeta *TableMeta::find_field_by_offset(int offset) const
 }
 int TableMeta::field_num() const { return fields_.size(); }
 
+int TableMeta::trx_field_num() const
+{
+  const vector<FieldMeta> *trx_fields = TrxKit::instance()->trx_fields();
+  if (nullptr == trx_fields) {
+    return 0;
+  }
+  return static_cast<int>(trx_fields->size());
+}
+
+// int TableMeta::sys_field_num() const
+// {
+//   return trx_field_num() + 1; // __null
+// }
 int TableMeta::sys_field_num() const
 {
   const vector<FieldMeta> *trx_fields = TrxKit::instance()->trx_fields();
@@ -168,16 +190,16 @@ const IndexMeta *TableMeta::index(const char *name) const
   return nullptr;
 }
 
+
 const IndexMeta *TableMeta::find_index_by_field(const char *field) const
 {
   for (const IndexMeta &index : indexes_) {
-    if (0 == strcmp(index.field(), field)) {
+    if (0 == strcmp(index.field().at(1).c_str(), field)) {
       return &index;
     }
   }
   return nullptr;
 }
-
 const IndexMeta *TableMeta::index(int i) const { return &indexes_[i]; }
 
 int TableMeta::index_num() const { return indexes_.size(); }

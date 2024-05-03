@@ -34,19 +34,20 @@ class IndexScanner;
  * @brief 索引基类
  * @ingroup Index
  */
-class Index
+class Index 
 {
 public:
-  Index()          = default;
+  Index() = default;
   virtual ~Index() = default;
 
-  const IndexMeta &index_meta() const { return index_meta_; }
-  
+  const IndexMeta &index_meta() const
+  {
+    return index_meta_;
+  }
   virtual RC drop() = 0;
-
   /**
    * @brief 插入一条数据
-   *
+   * 
    * @param record 插入的记录，当前假设记录是定长的
    * @param[out] rid    插入的记录的位置
    */
@@ -54,7 +55,7 @@ public:
 
   /**
    * @brief 删除一条数据
-   *
+   * 
    * @param record 删除的记录，当前假设记录是定长的
    * @param[in] rid   删除的记录的位置
    */
@@ -62,7 +63,7 @@ public:
 
   /**
    * @brief 创建一个索引数据的扫描器
-   *
+   * 
    * @param left_key 要扫描的左边界
    * @param left_len 左边界的长度
    * @param left_inclusive 是否包含左边界
@@ -75,16 +76,16 @@ public:
 
   /**
    * @brief 同步索引数据到磁盘
-   *
+   * 
    */
   virtual RC sync() = 0;
 
 protected:
-  RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);
+  RC init(const IndexMeta &index_meta, const std::vector<const FieldMeta*> &field_metas);
 
 protected:
   IndexMeta index_meta_;  ///< 索引的元数据
-  FieldMeta field_meta_;  ///< 当前实现仅考虑一个字段的索引
+  std::vector<FieldMeta> field_metas_;  ///< 多个字段的索引
 };
 
 /**

@@ -114,6 +114,9 @@ void Value::set_value(const Value &value)
     case INTS: {
       set_int(value.get_int());
     } break;
+    case DATES: {
+      set_date(value.get_int());
+    } break;
     case FLOATS: {
       set_float(value.get_float());
     } break;
@@ -123,9 +126,9 @@ void Value::set_value(const Value &value)
     case BOOLEANS: {
       set_boolean(value.get_boolean());
     } break;
-    case DATES: {
-      set_date(value.get_int());
-    }
+    case NULLS: {
+      set_null();
+    } break;
     case UNDEFINED: {
       ASSERT(false, "got an invalid value type");
     } break;
