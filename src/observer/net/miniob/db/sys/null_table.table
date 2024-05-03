@@ -1,0 +1,32 @@
+{
+	"fields" : 
+	[
+		{
+			"len" : 4,
+			"name" : "id",
+			"nullable" : false,
+			"offset" : 0,
+			"type" : "ints",
+			"visible" : true
+		},
+		{
+			"len" : 4,
+			"name" : "num",
+			"nullable" : false,
+			"offset" : 4,
+			"type" : "ints",
+			"visible" : true
+		},
+		{
+			"len" : 4,
+			"name" : "price",
+			"nullable" : false,
+			"offset" : 8,
+			"type" : "floats",
+			"visible" : true
+		}
+	],
+	"indexes" : null,
+	"table_id" : 0,
+	"table_name" : "null_table"
+}

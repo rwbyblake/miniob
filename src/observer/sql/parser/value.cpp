@@ -19,11 +19,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/date.h"
 #include <sstream>
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "booleans"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "nulls", "booleans"};
 
 const char *attr_type_to_string(AttrType type)
 {
-  if (type >= UNDEFINED && type <= FLOATS) {
+  if (type >= UNDEFINED && type <= NULLS) {
     return ATTR_TYPE_NAME[type];
   }
   return "unknown";
@@ -166,6 +166,9 @@ std::string Value::to_string() const
     case DATES: {
       os << date_to_str(num_value_.int_value_);
     }
+    case NULLS: {
+      os << "NULL";
+    } break;
     default: {
       LOG_WARN("unsupported attr type: %d", attr_type_);
     } break;
@@ -175,6 +178,17 @@ std::string Value::to_string() const
 
 int Value::compare(const Value &other) const
 {
+  if(this->is_null() || other.is_null())
+  {
+    if(this->is_null() && other.is_null() )
+    {
+      return 0;
+    }
+    else
+    {
+      return -1;
+    }
+  }
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
       case INTS: case DATES:{

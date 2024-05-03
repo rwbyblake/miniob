@@ -54,7 +54,11 @@ RC InsertStmt::create(Db *db, const InsertSqlNode &inserts, Stmt *&stmt)
     const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
     const AttrType   field_type = field_meta->type();
     const AttrType   value_type = values[i].attr_type();
-    if (field_type != value_type) {  // TODO try to convert the value type to field type
+    if (value_type == NULLS && !field_meta->nullable()) {
+      LOG_WARN("field not support null type.");
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    } 
+    if (field_type != value_type && value_type != NULLS) {  // TODO try to convert the value type to field type
       Value& value = const_cast<Value&> (values[i]);
       RC rc = type_change(field_type, value);
       if (rc != RC::SUCCESS) {

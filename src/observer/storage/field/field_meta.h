@@ -44,7 +44,7 @@ public:
   int         offset() const;
   int         len() const;
   bool        visible() const;
-  bool nullable() const;
+  bool        nullable() const;
 
 
 public:
@@ -64,6 +64,6 @@ protected:
   int         attr_offset_;
   int         attr_len_;
   bool        visible_;
-  bool nullable_;
+  bool        nullable_;
 
 };

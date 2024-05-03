@@ -90,6 +90,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         ON
         LOAD
         DATA
+        NULL_T
+        NOT
+        IS
         UNIQUE
         INFILE
         EXPLAIN
@@ -133,6 +136,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <value>               value
 %type <number>              number
 %type <comp>                comp_op
+%type <boolean>             null_option
 %type <rel_attr>            rel_attr
 %type <boolean>             unique_option
 %type <attr_infos>          attr_def_list
@@ -367,21 +371,37 @@ attr_def_list:
     ;
     
 attr_def:
-    ID type LBRACE number RBRACE 
+    ID type LBRACE number RBRACE null_option
     {
       $$ = new AttrInfoSqlNode;
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = $4;
+      $$->nullable = $6;
       free($1);
     }
-    | ID type
+    | ID type null_option
     {
       $$ = new AttrInfoSqlNode;
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = 4;
+      $$->nullable = $3;
       free($1);
+    }
+    ;
+null_option:
+    /* empty */
+    {
+      $$ = true;
+    }
+    | NULL_T
+    {
+      $$ = true;
+    }
+    | NOT NULL_T
+    {
+      $$ = false;
     }
     ;
 number:
@@ -427,17 +447,20 @@ value_list:
 value:
     NUMBER {
       $$ = new Value((int)$1);
-      @$ = @1;
+      @$ = @1; // useless
     }
     |FLOAT {
       $$ = new Value((float)$1);
-      @$ = @1;
+      @$ = @1; // useless
     }
     |SSS {
       char *tmp = common::substr($1,1,strlen($1)-2);
       $$ = new Value(tmp);
       free(tmp);
-      free($1);
+    }
+    | NULL_T {
+      $$ = new Value();
+      $$->set_null();
     }
     ;
     
@@ -693,6 +716,8 @@ comp_op:
     | LE { $$ = LESS_EQUAL; }
     | GE { $$ = GREAT_EQUAL; }
     | NE { $$ = NOT_EQUAL; }
+    | IS { $$ = IS_NULL; }
+    | IS NOT { $$ = IS_NOT_NULL; }
     ;
 
 load_data_stmt:
