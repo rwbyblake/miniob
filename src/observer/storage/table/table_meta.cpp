@@ -87,7 +87,20 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
     field_offset += attr_info.length;
   }
 
-  record_size_ = field_offset;
+  // bitmap放在每个record头部
+  int temp = fields_.size();
+  int bitmap_size=(temp >> 3) + 1;
+
+  //修改其offset
+  for (auto &field : fields_) {
+    field.set_offset(field.offset() +bitmap_size);
+  }
+
+
+
+
+  record_size_ = field_offset + bitmap_size;
+
 
   table_id_ = table_id;
   name_     = name;
@@ -296,7 +309,7 @@ int TableMeta::deserialize(std::istream &is)
   table_id_ = table_id;
   name_.swap(table_name);
   fields_.swap(fields);
-  record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset();
+  record_size_ = fields_.back().offset() + fields_.back().len();// - fields_.begin()->offset();
 
   const Json::Value &indexes_value = table_value[FIELD_INDEXES];
   if (!indexes_value.empty()) {

@@ -433,7 +433,7 @@ RC MvccTrx::redo(Db *db, const CLogRecord &log_record)
     case CLogType::INSERT: {
       const CLogRecordData &data_record = log_record.data_record();
       Record                record;
-      record.set_data(const_cast<char *>(data_record.data_), data_record.data_len_);
+      record.set_data(const_cast<char *>(data_record.data_), 0, data_record.data_len_);
       record.set_rid(data_record.rid_);
       RC rc = table->recover_insert_record(record);
       if (OB_FAIL(rc)) {

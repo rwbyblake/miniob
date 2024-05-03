@@ -65,6 +65,8 @@ AttrType FieldMeta::type() const { return attr_type_; }
 
 int FieldMeta::offset() const { return attr_offset_; }
 
+void FieldMeta::set_offset(int attr_offset) {  attr_offset_=attr_offset; }
+
 int FieldMeta::len() const { return attr_len_; }
 
 bool FieldMeta::visible() const { return visible_; }

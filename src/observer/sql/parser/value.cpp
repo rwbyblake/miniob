@@ -65,6 +65,9 @@ void Value::set_data(char *data, int length)
       num_value_.bool_value_ = *(int *)data != 0;
       length_                = length;
     } break;
+    case NULLS: {
+      set_null();
+    }break;
     default: {
       LOG_WARN("unknown data type: %d", attr_type_);
     } break;
@@ -89,6 +92,8 @@ void Value::set_boolean(bool val)
   num_value_.bool_value_ = val;
   length_                = sizeof(val);
 }
+
+
 void Value::set_string(const char *s, int len /*= 0*/)
 {
   attr_type_ = CHARS;
@@ -165,7 +170,7 @@ std::string Value::to_string() const
     } break;
     case DATES: {
       os << date_to_str(num_value_.int_value_);
-    }
+    } break;
     case NULLS: {
       os << "NULL";
     } break;

@@ -46,6 +46,8 @@ public:
   bool        visible() const;
   bool        nullable() const;
 
+  void        set_offset(int offset);
+
 
 public:
   void desc(std::ostream &os) const;

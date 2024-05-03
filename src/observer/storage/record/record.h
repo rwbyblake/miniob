@@ -116,6 +116,24 @@ public:
     }
   }
 
+  void set_data(char *data, int bitmap_len, int len = 0)
+  {
+    this->data_ = data;
+    this->bitmap_len_ = bitmap_len;
+    this->len_ = len;
+  }
+
+  void set_data_owner(char *data, int len, int bitmap_len)
+  {
+    ASSERT(len != 0, "the len of data should not be 0");
+    this->~Record();
+
+    this->data_  = data;
+    this->len_   = len;
+    this->bitmap_len_ = bitmap_len;
+    this->owner_ = true;
+  }
+
   Record &operator=(const Record &other)
   {
     if (this == &other) {
@@ -127,20 +145,20 @@ public:
     return *this;
   }
 
-  void set_data(char *data, int len = 0)
-  {
-    this->data_ = data;
-    this->len_  = len;
-  }
-  void set_data_owner(char *data, int len)
-  {
-    ASSERT(len != 0, "the len of data should not be 0");
-    this->~Record();
+  // void set_data(char *data, int len = 0)
+  // {
+  //   this->data_ = data;
+  //   this->len_  = len;
+  // }
+  // void set_data_owner(char *data, int len)
+  // {
+  //   ASSERT(len != 0, "the len of data should not be 0");
+  //   this->~Record();
 
-    this->data_  = data;
-    this->len_   = len;
-    this->owner_ = true;
-  }
+  //   this->data_  = data;
+  //   this->len_   = len;
+  //   this->owner_ = true;
+  // }
 
   char       *data() { return this->data_; }
   const char *data() const { return this->data_; }
