@@ -59,6 +59,9 @@ RC UpdatePhysicalOperator::next() {
     int index;
     const FieldMeta *field = table_->table_meta().field(field_name_, index);
     int offset = field->offset();
+    if (field->type() == TEXTS) {
+      
+    }
     rc = trx_->update_record(table_, record, offset, index, value_);
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to delete record: %s", strrc(rc));

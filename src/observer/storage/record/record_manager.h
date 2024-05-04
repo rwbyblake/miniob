@@ -165,6 +165,14 @@ public:
    * @param rid  如果插入成功，通过这个参数返回插入的位置
    */
   RC insert_record(const char *data, RID *rid);
+  
+  /*
+   * @brief 向一个页面插入全为text的记录
+   *
+   * 
+   * 
+   */
+  RC insert_text(const char *data, int length, PageNum next_page_num);
 
   /**
    * @brief 数据库恢复时，在指定位置插入数据
@@ -190,6 +198,9 @@ public:
    * @param rec 返回指定的数据。这里不会将数据复制出来，而是使用指针，所以调用者必须保证数据使用期间受到保护
    */
   RC get_record(const RID *rid, Record *rec);
+  
+  // 通过*next_page_num和*data返回下一个页面的页号和当前页面的数据
+  RC get_text(PageNum *next_page_num, std::string &data);
 
   /**
    * @brief 返回该记录页的页号
@@ -239,6 +250,60 @@ private:
   friend class RecordPageIterator;
 };
 
+class TextPageHandler
+{
+public:
+  TextPageHandler() = default;
+  ~TextPageHandler();
+
+  /**
+   * @brief 初始化
+   */
+  RC init(DiskBufferPool &buffer_pool, PageNum page_num, bool readonly);
+
+  /**
+   * @brief 对一个新的页面做初始化，初始化关于该页面记录信息的页头PageHeader
+   * @param record_size 设置为固定值64字节
+   */
+  RC init_empty_page(DiskBufferPool &buffer_pool, PageNum page_num);
+
+  /**
+   * @brief 操作结束后做的清理工作，比如释放页面、解锁
+   */
+  RC cleanup();
+
+  /**
+   * @brief 插入一条记录
+   *
+   * @param data 要插入的记录
+   * @param rid  如果插入成功，通过这个参数返回插入的位置
+   */
+  RC insert_text(const char *data, int length, PageNum next_page_num);
+
+  /**
+   * @brief 更新一条记录
+   * @param rid 要更新的text的起始位置
+   * @param rec 新的text数据
+   */
+  RC update_text(RID *rid, char *rec);
+
+  /**
+   * @brief 删除指定的text
+   */
+  RC delete_text(const PageNum PageNum);
+
+  /**
+   * @brief 获取指定位置的text数据
+   * @param rec 存放返回数据的内存空间
+   */
+  RC get_text(PageNum *next_page_num, std::string &data);
+
+protected:
+  DiskBufferPool *disk_buffer_pool_ = nullptr;  ///< 当前操作的buffer pool(文件)
+  Frame          *frame_            = nullptr;  ///< 当前操作页面关联的frame(frame的更多概念可以参考buffer pool和frame)
+  bool            readonly_         = false;    ///< 当前的操作是否都是只读的
+};
+
 /**
  * @brief 管理整个文件中记录的增删改查
  * @ingroup RecordManager
@@ -269,6 +334,8 @@ public:
    */
   RC delete_record(const RID *rid);
 
+  RC update_record(int offset, int index, Value &value, const Record &record);
+  
   /**
    * @brief 插入一个新的记录到指定文件中，并返回该记录的标识符
    *
@@ -276,10 +343,8 @@ public:
    * @param record_size 记录大小
    * @param rid         返回该记录的标识符
    */
-  RC update_record(int offset, int index, Value &value, const Record &record);
-  
-
   RC insert_record(const char *data, int record_size, RID *rid);
+  RC insert_text(const char *data, int length, PageNum &pageNum);
 
   /**
    * @brief 数据库恢复时，在指定文件指定位置插入数据
@@ -301,6 +366,7 @@ public:
    *       如果page_handler 释放了，那也不能再访问rec对象了。
    */
   RC get_record(RecordPageHandler &page_handler, const RID *rid, bool readonly, Record *rec);
+  RC get_text(const PageNum pageNum, std::string &data);
 
   /**
    * @brief 与get_record类似，访问某个记录，并提供回调函数来操作相应的记录
@@ -320,6 +386,34 @@ private:
 private:
   DiskBufferPool             *disk_buffer_pool_ = nullptr;
   std::unordered_set<PageNum> free_pages_;  ///< 没有填充满的页面集合
+  common::Mutex               lock_;  ///< 当编译时增加-DCONCURRENCY=ON 选项时，才会真正的支持并发
+};
+
+class TextFileHandler
+{
+public:
+  TextFileHandler() = default;
+  ~TextFileHandler();
+
+  /**
+   * @brief 初始化
+   *
+   * @param buffer_pool 当前操作的是哪个文件
+   */
+  RC init(DiskBufferPool *buffer_pool);
+
+  /**
+   * @brief 关闭，做一些资源清理的工作
+   */
+  void close();
+
+  RC delete_text(const PageNum pageNum);
+
+  RC insert_text(const char *data, int length, PageNum &pageNum);
+
+  RC get_text(const PageNum pageNum, std::string &data);
+  private:
+  DiskBufferPool             *disk_buffer_pool_ = nullptr;
   common::Mutex               lock_;  ///< 当编译时增加-DCONCURRENCY=ON 选项时，才会真正的支持并发
 };
 

@@ -34,9 +34,18 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
 
   // 这里由于UpdateSqlNode中仅仅只有一个value
   // 所以也仅仅支持一个字段的更新
-  // const AttrType value_type = update.value.attr_type();
+  const AttrType value_type = update.value.attr_type();
 
-  // const AttrType field_type = field_meta->type();
+  const AttrType field_type = field_meta->type();
+  if (value_type != field_type) {
+    Value& value = const_cast<Value&> (update.value);
+    RC rc = type_change(field_type, value);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
+        table_name, field_meta->name(), field_type, value_type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+  }
 
   
   std::unordered_map<std::string, Table *> table_map;
