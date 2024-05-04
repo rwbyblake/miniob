@@ -91,6 +91,10 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         ON
         LOAD
         DATA
+        NULL_T
+        NOT
+        IS
+        UNIQUE
         INFILE
         EXPLAIN
         EQ
@@ -118,6 +122,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   char *                            string;
   int                               number;
   float                             floats;
+  bool                              boolean;
 }
 
 %token <number> NUMBER
@@ -132,9 +137,12 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <value>               value
 %type <number>              number
 %type <comp>                comp_op
+%type <boolean>             null_option
 %type <rel_attr>            rel_attr
+%type <boolean>             unique_option
 %type <attr_infos>          attr_def_list
 %type <attr_info>           attr_def
+%type <relation_list>       idx_col_list
 %type <value_list>          value_list
 %type <condition_list>      where
 %type <condition_list>      condition_list
@@ -154,6 +162,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <sql_node>            desc_table_stmt
 %type <sql_node>            create_index_stmt
 %type <sql_node>            drop_index_stmt
+%type <sql_node>            show_index_stmt
 %type <sql_node>            sync_stmt
 %type <sql_node>            begin_stmt
 %type <sql_node>            commit_stmt
@@ -191,6 +200,7 @@ command_wrapper:
   | desc_table_stmt
   | create_index_stmt
   | drop_index_stmt
+  | show_index_stmt
   | sync_stmt
   | begin_stmt
   | commit_stmt
@@ -259,16 +269,49 @@ desc_table_stmt:
     ;
 
 create_index_stmt:    /*create index 语句的语法解析树*/
-    CREATE INDEX ID ON ID LBRACE ID RBRACE
+    CREATE unique_option INDEX ID ON ID LBRACE ID idx_col_list RBRACE
     {
       $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
       CreateIndexSqlNode &create_index = $$->create_index;
-      create_index.index_name = $3;
-      create_index.relation_name = $5;
-      create_index.attribute_name = $7;
-      free($3);
-      free($5);
-      free($7);
+      create_index.unique = $2;
+      create_index.index_name = $4;
+      create_index.relation_name = $6;
+      
+      std::vector<std::string> *idx_cols = $9;
+      if (nullptr != idx_cols) {
+        create_index.attr_names.swap(*idx_cols);
+        delete $9;
+      }
+      create_index.attr_names.emplace_back($8);
+      std::reverse(create_index.attr_names.begin(), create_index.attr_names.end());
+      free($4);
+      free($6);
+      free($8);
+    }
+    ;
+unique_option:
+    /* empty */
+    {
+      $$ = false;
+    }
+    | UNIQUE
+    {
+      $$ = true;
+    }
+idx_col_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | COMMA ID idx_col_list
+    {
+      if ($3 != nullptr) {
+        $$ = $3;
+      } else {
+        $$ = new std::vector<std::string>;
+      }
+      $$->emplace_back($2);
+      free($2);
     }
     ;
 
@@ -282,6 +325,16 @@ drop_index_stmt:      /*drop index 语句的语法解析树*/
       free($5);
     }
     ;
+
+show_index_stmt:      /*show index 语句的语法解析树*/
+    SHOW INDEX FROM ID
+    {
+      $$ = new ParsedSqlNode(SCF_SHOW_INDEX);
+      $$->show_index.relation_name = $4;
+      free($4);
+    }
+    ;
+
 create_table_stmt:    /*create table 语句的语法解析树*/
     CREATE TABLE ID LBRACE attr_def attr_def_list RBRACE
     {
@@ -319,21 +372,37 @@ attr_def_list:
     ;
     
 attr_def:
-    ID type LBRACE number RBRACE 
+    ID type LBRACE number RBRACE null_option
     {
       $$ = new AttrInfoSqlNode;
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = $4;
+      $$->nullable = $6;
       free($1);
     }
-    | ID type
+    | ID type null_option
     {
       $$ = new AttrInfoSqlNode;
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = 4;
+      $$->nullable = $3;
       free($1);
+    }
+    ;
+null_option:
+    /* empty */
+    {
+      $$ = true;
+    }
+    | NULL_T
+    {
+      $$ = true;
+    }
+    | NOT NULL_T
+    {
+      $$ = false;
     }
     ;
 number:
@@ -380,17 +449,20 @@ value_list:
 value:
     NUMBER {
       $$ = new Value((int)$1);
-      @$ = @1;
+      @$ = @1; // useless
     }
     |FLOAT {
       $$ = new Value((float)$1);
-      @$ = @1;
+      @$ = @1; // useless
     }
     |SSS {
       char *tmp = common::substr($1,1,strlen($1)-2);
       $$ = new Value(tmp);
       free(tmp);
-      free($1);
+    }
+    | NULL_T {
+      $$ = new Value();
+      $$->set_null();
     }
     ;
     
@@ -647,6 +719,8 @@ comp_op:
     | LE { $$ = LESS_EQUAL; }
     | GE { $$ = GREAT_EQUAL; }
     | NE { $$ = NOT_EQUAL; }
+    | IS { $$ = IS_NULL; }
+    | IS NOT { $$ = IS_NOT_NULL; }
     ;
 
 load_data_stmt:

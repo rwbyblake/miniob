@@ -20,11 +20,11 @@ See the Mulan PSL v2 for more details. */
 #include <sstream>
 #include "value.h"
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "booleans", "texts"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "nulls", "booleans", "texts"};
 
 const char *attr_type_to_string(AttrType type)
 {
-  if (type >= UNDEFINED && type <= FLOATS) {
+  if (type >= UNDEFINED && type <= NULLS) {
     return ATTR_TYPE_NAME[type];
   }
   return "unknown";
@@ -66,6 +66,10 @@ void Value::set_data(char *data, int length)
       num_value_.bool_value_ = *(int *)data != 0;
       length_                = length;
     } break;
+
+    case NULLS: {
+      set_null();
+    }break;
     case DATES: {
       set_date(*(int *)data);
     } break;
@@ -96,6 +100,8 @@ void Value::set_boolean(bool val)
   num_value_.bool_value_ = val;
   length_                = sizeof(val);
 }
+
+
 void Value::set_string(const char *s, int len /*= 0*/)
 {
   attr_type_ = CHARS;
@@ -121,6 +127,9 @@ void Value::set_value(const Value &value)
     case INTS: {
       set_int(value.get_int());
     } break;
+    case DATES: {
+      set_date(value.get_int());
+    } break;
     case FLOATS: {
       set_float(value.get_float());
     } break;
@@ -130,6 +139,8 @@ void Value::set_value(const Value &value)
     case BOOLEANS: {
       set_boolean(value.get_boolean());
     } break;
+    case NULLS: {
+      set_null();
     case DATES: {
       set_date(value.get_int());
     } break;
@@ -179,7 +190,10 @@ std::string Value::to_string() const
     } break;
     case DATES: {
       os << date_to_str(num_value_.int_value_);
-    }
+    } break;
+    case NULLS: {
+      os << "NULL";
+    } break;
     default: {
       LOG_WARN("unsupported attr type: %d", attr_type_);
     } break;
@@ -189,6 +203,17 @@ std::string Value::to_string() const
 
 int Value::compare(const Value &other) const
 {
+  if(this->is_null() || other.is_null())
+  {
+    if(this->is_null() && other.is_null() )
+    {
+      return 0;
+    }
+    else
+    {
+      return -1;
+    }
+  }
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
       case INTS: case DATES:{

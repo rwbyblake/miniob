@@ -24,6 +24,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "sql/parser/value.h"
 #include "storage/record/record.h"
+#include "common/lang/bitmap.h"
 
 class Table;
 
@@ -149,27 +150,35 @@ public:
 
   RC cell_at(int index, Value &cell) const override
   {
+
     if (index < 0 || index >= static_cast<int>(speces_.size())) {
       LOG_WARN("invalid argument. index=%d", index);
       return RC::INVALID_ARGUMENT;
     }
 
-    FieldExpr       *field_expr = speces_[index];
-    const FieldMeta *field_meta = field_expr->field().meta();
-    cell.set_type(field_meta->type());
-    if (field_meta->type() == TEXTS) {
-      // 从record_->data()中获取PageNum
-      PageNum begin_page_num = *(reinterpret_cast<const PageNum *>(this->record_->data() + field_meta->offset()));
-      // PageNum begin_rid = (this->record_->data() + field_meta->offset(), field_meta->len());
-      std::string data;
-      if (table_->get_text(begin_page_num, data) != RC::SUCCESS) {
-        return RC::INTERNAL;
-      }
-      cell.set_data(data.c_str(), data.size());
-    } else {
-      cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    common::Bitmap bitmap(record_->data(), record_->bitmap_len());
+
+    if (bitmap.get_bit(index)) {
+      cell.set_type(NULLS);
+      cell.set_data("NULL", 5);
     }
-    
+    else {
+      FieldExpr       *field_expr = speces_[index];
+      const FieldMeta *field_meta = field_expr->field().meta();
+      cell.set_type(field_meta->type());
+      if (field_meta->type() == TEXTS) {
+        // 从record_->data()中获取PageNum
+        PageNum begin_page_num = *(reinterpret_cast<const PageNum *>(this->record_->data() + field_meta->offset()));
+        // PageNum begin_rid = (this->record_->data() + field_meta->offset(), field_meta->len());
+        std::string data;
+        if (table_->get_text(begin_page_num, data) != RC::SUCCESS) {
+          return RC::INTERNAL;
+        }
+        cell.set_data(data.c_str(), data.size());
+      } else {
+        cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+      }
+    }
     return RC::SUCCESS;
   }
 

@@ -107,6 +107,16 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
     case GREAT_THAN: {
       result = (cmp_result > 0);
     } break;
+    case IS_NULL: {
+      AttrType left_type = left.attr_type();
+      AttrType right_type = right.attr_type();
+      result = left_type == right_type && left_type == NULLS;
+    }break;
+    case IS_NOT_NULL: {
+      AttrType left_type = left.attr_type();
+      AttrType right_type = right.attr_type();
+      result = (left_type == NULLS || right_type == NULLS) && (left_type != NULLS || right_type != NULLS);
+    }break;
     default: {
       LOG_WARN("unsupported comparison. %d", comp_);
       rc = RC::INTERNAL;

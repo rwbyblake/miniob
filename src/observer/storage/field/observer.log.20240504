@@ -1,0 +1,93 @@
+[2024-05-04 02:21:01.061707 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: init@init.cpp:218] >> Output configuration 
+Begin dump configuration
+[]
+
+Finish dump configuration 
+
+[2024-05-04 02:21:01.063344 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:128, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.064134 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:256, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.064857 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:384, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.065728 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:512, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.066537 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:640, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.067337 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:768, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.068455 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:896, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.069215 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1024, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.069931 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1152, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.070680 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1280, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.071467 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1408, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.072234 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1536, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.073161 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1664, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.073955 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1792, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.074732 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1920, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.075450 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2048, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.076210 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2176, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.076999 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2304, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.077829 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2432, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.078717 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.078933 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: init@mem_pool.h:192] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:21:01.079126 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: BufferPoolManager@disk_buffer_pool.cpp:618] >> buffer pool manager init with memory size 20971520, page num: 2560, pool num: 20
+[2024-05-04 02:21:01.080430 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: init@clog.cpp:293] >> open clog file success. file=miniob/db/sys/clog, fd=4
+[2024-05-04 02:21:01.081278 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: open_all_tables@db.cpp:180] >> All table have been opened. num=0
+[2024-05-04 02:21:01.081535 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: recover@clog.cpp:537] >> find 0 uncommitted trx
+[2024-05-04 02:21:01.081788 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: init@default_handler.cpp:76] >> Default handler init with miniob success
+[2024-05-04 02:21:01.082008 pid:15367 tid:7ffff7fd97c0 ctx:0 INFO: init@init.cpp:233] >> Successfully init utility
+[2024-05-04 02:22:08.722729 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: create@table.cpp:65] >> Begin to create table miniob/db/sys:null_table
+[2024-05-04 02:22:08.724230 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: init@field_meta.cpp:58] >> Init a field with name=id
+[2024-05-04 02:22:08.724321 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: init@field_meta.cpp:58] >> Init a field with name=num
+[2024-05-04 02:22:08.724362 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: init@field_meta.cpp:58] >> Init a field with name=price
+[2024-05-04 02:22:08.724417 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: init@table_meta.cpp:107] >> Sussessfully initialized table meta. table id=0, name=null_table
+[2024-05-04 02:22:08.726314 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: create_file@disk_buffer_pool.cpp:673] >> Successfully create miniob/db/sys/null_table.data.
+[2024-05-04 02:22:08.726648 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: open_file@disk_buffer_pool.cpp:227] >> Successfully open buffer pool file miniob/db/sys/null_table.data.
+[2024-05-04 02:22:08.727077 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: open_file@disk_buffer_pool.cpp:254] >> Successfully open miniob/db/sys/null_table.data. file_desc=5, hdr_frame=0x7ffff29fa808, file header=pageCount:1, allocatedCount:1
+[2024-05-04 02:22:08.727407 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: init_free_pages@record_manager.cpp:346] >> record file handler init free pages done. free page num=0, rc=SUCCESS
+[2024-05-04 02:22:08.727522 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: init@record_manager.cpp:307] >> open record file handle done. rc=SUCCESS
+[2024-05-04 02:22:08.727611 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: create@table.cpp:121] >> Successfully create table miniob/db/sys:null_table
+[2024-05-04 02:22:08.727782 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: create_table@db.cpp:100] >> Create table success. table name=null_table, table_id:0
+[2024-05-04 02:22:19.384738 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: handle_event@sql_task_handler.cpp:43] >> write result return SUCCESS
+[2024-05-04 02:23:57.252843 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: allocate_page@disk_buffer_pool.cpp:363] >> allocate new page. file=miniob/db/sys/null_table.data, pageNum=1, pin=1
+[2024-05-04 02:25:24.003933 pid:15367 tid:7ffff7fd97c0 ctx:60300001f6c0 INFO: handle_event@sql_task_handler.cpp:43] >> write result return SUCCESS
+[2024-05-04 02:26:11.859110 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@init.cpp:218] >> Output configuration 
+Begin dump configuration
+[]
+
+Finish dump configuration 
+
+[2024-05-04 02:26:11.860587 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:128, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.861413 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:256, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.862119 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:384, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.862866 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:512, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.863603 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:640, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.864910 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:768, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.865858 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:896, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.867498 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1024, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.868209 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1152, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.868964 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1280, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.869689 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1408, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.870756 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1536, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.871673 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1664, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.872361 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1792, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.873063 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:1920, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.873754 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2048, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.874405 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2176, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.875075 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2304, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.875785 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2432, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.876932 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: extend@mem_pool.h:245] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.876996 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@mem_pool.h:192] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2024-05-04 02:26:11.877025 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: BufferPoolManager@disk_buffer_pool.cpp:618] >> buffer pool manager init with memory size 20971520, page num: 2560, pool num: 20
+[2024-05-04 02:26:11.877239 pid:16554 tid:7ffff7fd97c0 ctx:0 WARN: create_db@default_handler.cpp:100] >> Db already exists: sys
+[2024-05-04 02:26:11.877963 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@clog.cpp:293] >> open clog file success. file=miniob/db/sys/clog, fd=4
+[2024-05-04 02:26:11.880517 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@field_meta.cpp:58] >> Init a field with name=id
+[2024-05-04 02:26:11.880599 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@field_meta.cpp:58] >> Init a field with name=num
+[2024-05-04 02:26:11.880630 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@field_meta.cpp:58] >> Init a field with name=price
+[2024-05-04 02:26:11.880905 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: open_file@disk_buffer_pool.cpp:227] >> Successfully open buffer pool file miniob/db/sys/null_table.data.
+[2024-05-04 02:26:11.881115 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: open_file@disk_buffer_pool.cpp:254] >> Successfully open miniob/db/sys/null_table.data. file_desc=5, hdr_frame=0x7ffff29fa808, file header=pageCount:1, allocatedCount:1
+[2024-05-04 02:26:11.881301 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init_free_pages@record_manager.cpp:346] >> record file handler init free pages done. free page num=0, rc=SUCCESS
+[2024-05-04 02:26:11.881364 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@record_manager.cpp:307] >> open record file handle done. rc=SUCCESS
+[2024-05-04 02:26:11.881508 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: open_all_tables@db.cpp:177] >> Open table: null_table, file: null_table.table
+[2024-05-04 02:26:11.881561 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: open_all_tables@db.cpp:180] >> All table have been opened. num=1
+[2024-05-04 02:26:11.881646 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: recover@clog.cpp:537] >> find 0 uncommitted trx
+[2024-05-04 02:26:11.881719 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@default_handler.cpp:76] >> Default handler init with miniob success
+[2024-05-04 02:26:11.881756 pid:16554 tid:7ffff7fd97c0 ctx:0 INFO: init@init.cpp:233] >> Successfully init utility
+[2024-05-04 02:26:19.017964 pid:16554 tid:7ffff7fd97c0 ctx:60300001fc60 INFO: allocate_page@disk_buffer_pool.cpp:363] >> allocate new page. file=miniob/db/sys/null_table.data, pageNum=1, pin=1
+[2024-05-04 02:31:30.857921 pid:16554 tid:7ffff7fd97c0 ctx:60300001fc60 INFO: handle_event@sql_task_handler.cpp:43] >> write result return SUCCESS
+[2024-05-04 02:31:50.939924 pid:16554 tid:7ffff7fd97c0 ctx:60300001fc60 INFO: create@select_stmt.cpp:126] >> got 1 tables in from stmt and 3 fields in query stmt

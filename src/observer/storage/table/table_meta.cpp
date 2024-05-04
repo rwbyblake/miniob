@@ -66,7 +66,7 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
 
     for (size_t i = 0; i < trx_fields->size(); i++) {
       const FieldMeta &field_meta = (*trx_fields)[i];
-      fields_[i] = FieldMeta(field_meta.name(), field_meta.type(), field_offset, field_meta.len(), false /*visible*/);
+      fields_[i] = FieldMeta(field_meta.name(), field_meta.type(), field_offset, field_meta.len(), false /*visible*/, field_meta.nullable());
       field_offset += field_meta.len();
     }
 
@@ -78,7 +78,7 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
   for (int i = 0; i < field_num; i++) {
     const AttrInfoSqlNode &attr_info = attributes[i];
     rc                               = fields_[i + trx_field_num].init(
-        attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/);
+        attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/, attr_info.nullable);
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name.c_str());
       return rc;
@@ -87,7 +87,20 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
     field_offset += attr_info.length;
   }
 
-  record_size_ = field_offset;
+  // bitmap放在每个record头部
+  int temp = fields_.size();
+  int bitmap_size=(temp >> 3) + 1;
+
+  //修改其offset
+  for (auto &field : fields_) {
+    field.set_offset(field.offset() +bitmap_size);
+  }
+
+
+
+
+  record_size_ = field_offset + bitmap_size;
+
 
   table_id_ = table_id;
   name_     = name;
@@ -124,6 +137,15 @@ const FieldMeta *TableMeta::field(const char *name) const
   return nullptr;
 }
 
+const FieldMeta *TableMeta::null_field() const
+{
+  return &fields_[0];
+}
+
+// const std::pair<const FieldMeta *, int> TableMeta::trx_fields() const
+// {
+//   return std::pair<const FieldMeta *, int>{fields_.data() + 1, trx_field_num()};
+// }
 const FieldMeta *TableMeta::field(const char *name, int &index) const {
   if (nullptr == name) {
     return nullptr;
@@ -149,6 +171,19 @@ const FieldMeta *TableMeta::find_field_by_offset(int offset) const
 }
 int TableMeta::field_num() const { return fields_.size(); }
 
+int TableMeta::trx_field_num() const
+{
+  const vector<FieldMeta> *trx_fields = TrxKit::instance()->trx_fields();
+  if (nullptr == trx_fields) {
+    return 0;
+  }
+  return static_cast<int>(trx_fields->size());
+}
+
+// int TableMeta::sys_field_num() const
+// {
+//   return trx_field_num() + 1; // __null
+// }
 int TableMeta::sys_field_num() const
 {
   const vector<FieldMeta> *trx_fields = TrxKit::instance()->trx_fields();
@@ -168,16 +203,16 @@ const IndexMeta *TableMeta::index(const char *name) const
   return nullptr;
 }
 
+
 const IndexMeta *TableMeta::find_index_by_field(const char *field) const
 {
   for (const IndexMeta &index : indexes_) {
-    if (0 == strcmp(index.field(), field)) {
+    if (0 == strcmp(index.field().at(1).c_str(), field)) {
       return &index;
     }
   }
   return nullptr;
 }
-
 const IndexMeta *TableMeta::index(int i) const { return &indexes_[i]; }
 
 int TableMeta::index_num() const { return indexes_.size(); }
@@ -274,7 +309,7 @@ int TableMeta::deserialize(std::istream &is)
   table_id_ = table_id;
   name_.swap(table_name);
   fields_.swap(fields);
-  record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset();
+  record_size_ = fields_.back().offset() + fields_.back().len();// - fields_.begin()->offset();
 
   const Json::Value &indexes_value = table_value[FIELD_INDEXES];
   if (!indexes_value.empty()) {

@@ -21,15 +21,16 @@ See the Mulan PSL v2 for more details. */
  * @brief B+树索引
  * @ingroup Index
  */
-class BplusTreeIndex : public Index
+class BplusTreeIndex : public Index 
 {
 public:
   BplusTreeIndex() = default;
   virtual ~BplusTreeIndex() noexcept;
 
-  RC create(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta);
+  RC create(const char *file_name, const bool unique, const IndexMeta &index_meta,
+            const std::vector<int> &field_ids, const std::vector<const FieldMeta*> &field_metas);
+  RC open(const char *file_name, const IndexMeta &index_meta, const std::vector<const FieldMeta *> &field_metas);
   RC drop() override;
-  RC open(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta);
   RC close();
 
   RC insert_entry(const char *record, const RID *rid) override;
@@ -44,7 +45,7 @@ public:
   RC sync() override;
 
 private:
-  bool             inited_ = false;
+  bool inited_ = false;
   BplusTreeHandler index_handler_;
 };
 
@@ -52,7 +53,7 @@ private:
  * @brief B+树索引扫描器
  * @ingroup Index
  */
-class BplusTreeIndexScanner : public IndexScanner
+class BplusTreeIndexScanner : public IndexScanner 
 {
 public:
   BplusTreeIndexScanner(BplusTreeHandler &tree_handle);

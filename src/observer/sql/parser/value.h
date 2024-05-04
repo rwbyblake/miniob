@@ -28,6 +28,7 @@ enum AttrType
   INTS,      ///< 整数类型(4字节)
   FLOATS,    ///< 浮点数类型(4字节)
   DATES,     ///< 日期类型(4字节)
+  NULLS,          ///< null类型
   TEXTS,     ///< text类型，最大65535字节
   BOOLEANS,  ///< boolean类型，当前不是由parser解析出来的，是程序内部使用的
 };
@@ -44,8 +45,10 @@ class Value
 public:
   Value() = default;
 
-  Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type) { this->set_data(data, length); }
-
+  Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type)
+  {
+    if (NULLS != attr_type_) this->set_data(data, length);
+  }
   explicit Value(int val);
   explicit Value(float val);
   explicit Value(bool val);
@@ -63,6 +66,13 @@ public:
   void set_string(const char *s, int len = 0);
   void set_date(int date);
   void set_value(const Value &value);
+  void set_null()
+  {
+    this->attr_type_ = NULLS;
+  }
+  bool is_null() const {
+    return this->attr_type_ == NULLS;
+  }
   void set_text(const char *s, int len = 0);
 
   std::string to_string() const;
@@ -73,6 +83,42 @@ public:
   int         length() const { return length_; }
 
   AttrType attr_type() const { return attr_type_; }
+
+  RC typecast(AttrType target_type)
+  {
+    if(target_type == attr_type_)
+    {
+      return RC::SUCCESS;
+    }
+    if(target_type == DATES || attr_type_ == NULLS)//允许转为 DATE，NULL 不允许进行转换
+    {
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+    switch (target_type)
+    {
+      case INTS:
+      {
+        int tmp = get_int();
+        set_int(tmp);
+      }
+        break;
+      case FLOATS:
+      {
+        float tmp = get_float();
+        set_float(tmp);
+      }
+        break;
+      case CHARS:
+      {
+        std::string tmp = get_string();
+        set_string(tmp.c_str());
+      }
+        break;
+      default:
+        break;
+    }
+    return RC::SUCCESS;
+  }
 
 public:
   /**
@@ -99,3 +145,4 @@ private:
 };
 
 RC type_change(AttrType target_type, Value &value);
+
