@@ -709,7 +709,6 @@ condition:
       delete $1;
       delete $3;
     }
-    | value IS value
     ;
 
 comp_op:

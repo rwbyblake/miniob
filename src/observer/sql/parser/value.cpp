@@ -20,7 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include <sstream>
 #include "value.h"
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "nulls", "booleans", "texts"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "texts", "nulls", "booleans"};
 
 const char *attr_type_to_string(AttrType type)
 {
@@ -39,7 +39,6 @@ AttrType attr_type_from_string(const char *s)
   return UNDEFINED;
 }
 
-
 Value::Value(int val) { set_int(val); }
 
 Value::Value(float val) { set_float(val); }
@@ -51,10 +50,10 @@ Value::Value(const char *s, int len /*= 0*/) { set_string(s, len); }
 void Value::set_data(char *data, int length)
 {
   switch (attr_type_) {
-    case CHARS:{
+    case CHARS: {
       set_string(data, length);
     } break;
-    case INTS:{
+    case INTS: {
       num_value_.int_value_ = *(int *)data;
       length_               = length;
     } break;
@@ -69,7 +68,7 @@ void Value::set_data(char *data, int length)
 
     case NULLS: {
       set_null();
-    }break;
+    } break;
     case DATES: {
       set_date(*(int *)data);
     } break;
@@ -101,7 +100,6 @@ void Value::set_boolean(bool val)
   length_                = sizeof(val);
 }
 
-
 void Value::set_string(const char *s, int len /*= 0*/)
 {
   attr_type_ = CHARS;
@@ -116,9 +114,9 @@ void Value::set_string(const char *s, int len /*= 0*/)
 
 void Value::set_date(int date)
 {
-  attr_type_ = DATES;
+  attr_type_            = DATES;
   num_value_.int_value_ = date;
-  length_ = sizeof(date);
+  length_               = sizeof(date);
 }
 
 void Value::set_value(const Value &value)
@@ -133,7 +131,8 @@ void Value::set_value(const Value &value)
     case FLOATS: {
       set_float(value.get_float());
     } break;
-    case CHARS: case TEXTS:{
+    case CHARS:
+    case TEXTS: {
       set_string(value.get_string().c_str());
     } break;
     case BOOLEANS: {
@@ -141,8 +140,6 @@ void Value::set_value(const Value &value)
     } break;
     case NULLS: {
       set_null();
-    case DATES: {
-      set_date(value.get_int());
     } break;
     case UNDEFINED: {
       ASSERT(false, "got an invalid value type");
@@ -150,7 +147,8 @@ void Value::set_value(const Value &value)
   }
 }
 
-void        Value::set_text(const char *s, int len) {
+void Value::set_text(const char *s, int len)
+{
   attr_type_ = TEXTS;
   if (len > 0) {
     len = strnlen(s, len);
@@ -163,7 +161,8 @@ void        Value::set_text(const char *s, int len) {
 const char *Value::data() const
 {
   switch (attr_type_) {
-    case CHARS: case TEXTS:{
+    case CHARS:
+    case TEXTS: {
       return str_value_.c_str();
     } break;
     default: {
@@ -185,7 +184,8 @@ std::string Value::to_string() const
     case BOOLEANS: {
       os << num_value_.bool_value_;
     } break;
-    case CHARS: case TEXTS:{
+    case CHARS:
+    case TEXTS: {
       os << str_value_;
     } break;
     case DATES: {
@@ -203,26 +203,24 @@ std::string Value::to_string() const
 
 int Value::compare(const Value &other) const
 {
-  if(this->is_null() || other.is_null())
-  {
-    if(this->is_null() && other.is_null() )
-    {
+  if (this->is_null() || other.is_null()) {
+    if (this->is_null() && other.is_null()) {
       return 0;
-    }
-    else
-    {
+    } else {
       return -1;
     }
   }
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
-      case INTS: case DATES:{
+      case INTS:
+      case DATES: {
         return common::compare_int((void *)&this->num_value_.int_value_, (void *)&other.num_value_.int_value_);
       } break;
       case FLOATS: {
         return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other.num_value_.float_value_);
       } break;
-      case CHARS: case TEXTS:{
+      case CHARS:
+      case TEXTS: {
         return common::compare_string((void *)this->str_value_.c_str(),
             this->str_value_.length(),
             (void *)other.str_value_.c_str(),
@@ -255,7 +253,8 @@ int Value::compare(const Value &other) const
 int Value::get_int() const
 {
   switch (attr_type_) {
-    case CHARS: case TEXTS:{
+    case CHARS:
+    case TEXTS: {
       try {
         return (int)(std::stol(str_value_));
       } catch (std::exception const &ex) {
@@ -263,7 +262,8 @@ int Value::get_int() const
         return 0;
       }
     }
-    case INTS: case DATES:{
+    case INTS:
+    case DATES: {
       return num_value_.int_value_;
     }
     case FLOATS: {
@@ -283,7 +283,8 @@ int Value::get_int() const
 float Value::get_float() const
 {
   switch (attr_type_) {
-    case CHARS: case TEXTS:{
+    case CHARS:
+    case TEXTS: {
       try {
         return std::stof(str_value_);
       } catch (std::exception const &ex) {
@@ -313,7 +314,8 @@ std::string Value::get_string() const { return this->to_string(); }
 bool Value::get_boolean() const
 {
   switch (attr_type_) {
-    case CHARS: case TEXTS:{
+    case CHARS:
+    case TEXTS: {
       try {
         float val = std::stof(str_value_);
         if (val >= EPSILON || val <= -EPSILON) {
@@ -349,60 +351,62 @@ bool Value::get_boolean() const
   return false;
 }
 
-int Value::get_date() const {
-  switch (attr_type_)
-  {
-  case INTS: case DATES: {
-    return num_value_.int_value_;
-  }break;
-  case CHARS: case TEXTS:{
-    int date = -1;
-    RC rc = str_to_date(str_value_.c_str(), date);
-    if (rc != RC::SUCCESS) LOG_WARN("Failed to conver data type. str=%s, target_type=%s", str_value_, "DATES");
-    return date;
-  }break;
-  
-  default: {
-    LOG_WARN("unknown data type. type=%s", attr_type_);
-    return 0;
-  }break;
+int Value::get_date() const
+{
+  switch (attr_type_) {
+    case INTS:
+    case DATES: {
+      return num_value_.int_value_;
+    } break;
+    case CHARS:
+    case TEXTS: {
+      int date = -1;
+      RC  rc   = str_to_date(str_value_.c_str(), date);
+      if (rc != RC::SUCCESS)
+        LOG_WARN("Failed to conver data type. str=%s, target_type=%s", str_value_, "DATES");
+      return date;
+    } break;
+
+    default: {
+      LOG_WARN("unknown data type. type=%s", attr_type_);
+      return 0;
+    } break;
   }
 }
 
-
-RC type_change(AttrType target_type, Value &value) {
-  switch (target_type)
-      {
-      case CHARS: {
-        value.set_string(value.get_string().c_str());
-      }break;
-      case INTS: {
-        value.set_int(value.get_int());
-      }break;
-      case FLOATS: {
-        value.set_float(value.get_float());
-      }break;
-      case DATES: {
-        // value.set_date(value.get_date());
-        int date;
-        RC rc = str_to_date(value.get_string().c_str(), date);
-        if (rc != RC::SUCCESS) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-        value.set_date(date);
-      }break;
-      case BOOLEANS: {
-        value.set_boolean(value.get_boolean());
-      }break;
-      case TEXTS: {
-        if (value.length() > 65535) {
-          LOG_ERROR("Text length exceeds.");
-          return RC::SCHEMA_FILED_LENGTH_EXCEEDS;
-        }
-        value.set_text(value.get_string().c_str());
-      }break;
-      default: {
+RC type_change(AttrType target_type, Value &value)
+{
+  switch (target_type) {
+    case CHARS: {
+      value.set_string(value.get_string().c_str());
+    } break;
+    case INTS: {
+      value.set_int(value.get_int());
+    } break;
+    case FLOATS: {
+      value.set_float(value.get_float());
+    } break;
+    case DATES: {
+      // value.set_date(value.get_date());
+      int date;
+      RC  rc = str_to_date(value.get_string().c_str(), date);
+      if (rc != RC::SUCCESS)
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      value.set_date(date);
+    } break;
+    case BOOLEANS: {
+      value.set_boolean(value.get_boolean());
+    } break;
+    case TEXTS: {
+      if (value.length() > 65535) {
+        LOG_ERROR("Text length exceeds.");
+        return RC::SCHEMA_FILED_LENGTH_EXCEEDS;
       }
-        break;
-      }
-      return RC::SUCCESS;
+      value.set_text(value.get_string().c_str());
+    } break;
+    default: {
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    } break;
+  }
+  return RC::SUCCESS;
 }
