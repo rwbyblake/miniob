@@ -802,8 +802,9 @@ RC TextFileHandler::insert_text(const char *data, int length, PageNum &pageNum) 
   // 对data按照BP_PAGE_DATA_SIZE进行分割，并逆序遍历分割串，以获得正确的next_page_num
   int data_len = length;
   int data_offset = 0;
+  const int real_data_size = BP_PAGE_DATA_SIZE - sizeof(PageNum) - sizeof(int);
   while (data_len > 0) {
-    int insert_len = data_len > BP_PAGE_DATA_SIZE ? BP_PAGE_DATA_SIZE : data_len;
+    int insert_len = data_len > real_data_size ? real_data_size : data_len;
     data_length.push_back(insert_len);
     data_len -= insert_len;
   }
