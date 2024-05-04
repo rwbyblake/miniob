@@ -28,8 +28,8 @@ enum AttrType
   INTS,      ///< 整数类型(4字节)
   FLOATS,    ///< 浮点数类型(4字节)
   DATES,     ///< 日期类型(4字节)
-  // TEXTS,          ///< text类型，最大65535字节
   NULLS,          ///< null类型
+  TEXTS,     ///< text类型，最大65535字节
   BOOLEANS,  ///< boolean类型，当前不是由parser解析出来的，是程序内部使用的
 };
 
@@ -73,6 +73,8 @@ public:
   bool is_null() const {
     return this->attr_type_ == NULLS;
   }
+  void set_text(const char *s, int len = 0);
+
   std::string to_string() const;
 
   int compare(const Value &other) const;

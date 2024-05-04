@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "storage/table/table_meta.h"
+#include "common/types.h"
 #include <functional>
 
 struct RID;
@@ -22,6 +23,7 @@ class Record;
 class DiskBufferPool;
 class RecordFileHandler;
 class RecordFileScanner;
+class TextFileHandler;
 class ConditionFilter;
 class DefaultConditionFilter;
 class Index;
@@ -74,6 +76,7 @@ public:
    */
   RC insert_record(Record &record);
   RC delete_record(const Record &record);
+  RC delete_text(const PageNum &pageNum);
   RC visit_record(const RID &rid, bool readonly, std::function<void(Record &)> visitor);
   RC update_record(Record &record, int offset, int index, Value &value);
   RC get_record(const RID &rid, Record &record);
@@ -86,6 +89,8 @@ public:
   RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly);
 
   RecordFileHandler *record_handler() const { return record_handler_; }
+  
+  RC get_text(PageNum pageNum, std::string &str) const;
 
 public:
   int32_t     table_id() const { return table_meta_.table_id(); }
@@ -101,6 +106,7 @@ private:
 
 private:
   RC init_record_handler(const char *base_dir);
+  RC init_text_handler(const char *base_dir);
 
 public:
   Index *find_index(const char *index_name) const;
@@ -111,5 +117,7 @@ private:
   TableMeta            table_meta_;
   DiskBufferPool      *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
   RecordFileHandler   *record_handler_   = nullptr;  /// 记录操作
+  DiskBufferPool      *text_buffer_pool_ = nullptr;   /// text文件关联的buffer pool
+  TextFileHandler     *text_handler_     = nullptr;   /// text文件操作
   std::vector<Index *> indexes_;
 };

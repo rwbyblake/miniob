@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
+#include "record_manager.h"
 
 using namespace common;
 
@@ -212,6 +213,23 @@ RC RecordPageHandler::insert_record(const char *data, RID *rid)
   return RC::SUCCESS;
 }
 
+RC RecordPageHandler::insert_text(const char *data, int length, PageNum next_page_num)
+{
+  ASSERT(readonly_ == false, "cannot insert record into page while the page is readonly");
+
+  // assert index < page_header_->record_capacity
+  char *record_data = frame_->data();
+  memcpy(record_data, &next_page_num, sizeof(PageNum));
+  memcpy(record_data + sizeof(PageNum), &length, sizeof(int));
+  memcpy(record_data + sizeof(PageNum) + sizeof(int), data, length);
+  // memcpy(record_data, data, page_header_->record_real_size);
+
+  frame_->mark_dirty();
+
+  // LOG_TRACE("Insert record. rid page_num=%d, slot num=%d", get_page_num(), index);
+  return RC::SUCCESS;
+}
+
 RC RecordPageHandler::recover_insert_record(const char *data, const RID &rid)
 {
   if (rid.slot_num >= page_header_->record_capacity) {
@@ -279,6 +297,17 @@ RC RecordPageHandler::get_record(const RID *rid, Record *rec)
   return RC::SUCCESS;
 }
 
+RC RecordPageHandler::get_text(PageNum *next_page_num, std::string &data)
+{
+  // 获取下一页的页号和数据长度
+  char *record_data = frame_->data();
+  memcpy(next_page_num, record_data, sizeof(PageNum));
+  int length;
+  memcpy(&length, record_data + sizeof(PageNum), sizeof(int));
+  data = std::string(record_data + sizeof(PageNum) + sizeof(int), length);
+  return RC::SUCCESS;
+}
+
 PageNum RecordPageHandler::get_page_num() const
 {
   if (nullptr == page_header_) {
@@ -288,6 +317,100 @@ PageNum RecordPageHandler::get_page_num() const
 }
 
 bool RecordPageHandler::is_full() const { return page_header_->record_num >= page_header_->record_capacity; }
+
+////////////////////////////////////////////////////////////////////////////////
+
+TextPageHandler::~TextPageHandler() { cleanup(); }
+
+RC TextPageHandler::init(DiskBufferPool &buffer_pool, PageNum page_num, bool readonly)
+{
+  if (disk_buffer_pool_ != nullptr) {
+    if (frame_->page_num() == page_num) {
+      LOG_WARN("Disk buffer pool has been opened for page_num %d.", page_num);
+      return RC::RECORD_OPENNED;
+    } else {
+      cleanup();
+    }
+  }
+
+  RC ret = RC::SUCCESS;
+  if ((ret = buffer_pool.get_this_page(page_num, &frame_)) != RC::SUCCESS) {
+    LOG_ERROR("Failed to get page handle from disk buffer pool. ret=%d:%s", ret, strrc(ret));
+    return ret;
+  }
+
+  if (readonly) {
+    frame_->read_latch();
+  } else {
+    frame_->write_latch();
+  }
+  disk_buffer_pool_ = &buffer_pool;
+  readonly_         = readonly;
+
+  LOG_TRACE("Successfully init page_num %d.", page_num);
+  return ret;
+}
+
+
+RC TextPageHandler::init_empty_page(DiskBufferPool &buffer_pool, PageNum page_num)
+{
+  RC ret = init(buffer_pool, page_num, false /*readonly*/);
+  if (ret != RC::SUCCESS) {
+    LOG_ERROR("Failed to init empty page page_num:record_size %d.", page_num);
+    return ret;
+  }
+
+  if ((ret = buffer_pool.flush_page(*frame_)) != RC::SUCCESS) {
+    LOG_ERROR("Failed to flush page header %d:%d.", buffer_pool.file_desc(), page_num);
+    return ret;
+  }
+
+  return RC::SUCCESS;
+}
+
+RC TextPageHandler::cleanup()
+{
+  if (disk_buffer_pool_ != nullptr) {
+    if (readonly_) {
+      frame_->read_unlatch();
+    } else {
+      frame_->write_unlatch();
+    }
+    disk_buffer_pool_->unpin_page(frame_);
+    disk_buffer_pool_ = nullptr;
+  }
+
+  return RC::SUCCESS;
+}
+
+RC TextPageHandler::insert_text(const char *data, int length, PageNum next_page_num)
+{
+  ASSERT(readonly_ == false, "cannot insert record into page while the page is readonly");
+
+  // assert index < page_header_->record_capacity
+  char *record_data = frame_->data();
+  memcpy(record_data, &next_page_num, sizeof(PageNum));
+  memcpy(record_data + sizeof(PageNum), &length, sizeof(int));
+  memcpy(record_data + sizeof(PageNum) + sizeof(int), data, length);
+  // memcpy(record_data, data, page_header_->record_real_size);
+
+  frame_->mark_dirty();
+
+  // LOG_TRACE("Insert record. rid page_num=%d, slot num=%d", get_page_num(), index);
+  return RC::SUCCESS;
+}
+
+RC TextPageHandler::get_text(PageNum *next_page_num, std::string &data)
+{
+  // 获取下一页的页号和数据长度
+  char *record_data = frame_->data();
+  memcpy(next_page_num, record_data, sizeof(PageNum));
+  int length;
+  memcpy(&length, record_data + sizeof(PageNum), sizeof(int));
+  data = std::string(record_data + sizeof(PageNum) + sizeof(int), length);
+  return RC::SUCCESS;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -412,6 +535,52 @@ RC RecordFileHandler::insert_record(const char *data, int record_size, RID *rid)
   return record_page_handler.insert_record(data, rid);
 }
 
+RC RecordFileHandler::insert_text(const char *data, int length, PageNum &pageNum) { 
+  RC ret = RC::SUCCESS;
+
+  RecordPageHandler record_page_handler;
+  PageNum current_page_num = 0;
+  PageNum before_page_num = 0;
+  std::vector<int> data_length;
+  // 对data按照BP_PAGE_DATA_SIZE进行分割，并逆序遍历分割串，以获得正确的next_page_num
+  int data_len = length;
+  int data_offset = 0;
+  while (data_len > 0) {
+    int insert_len = data_len > BP_PAGE_DATA_SIZE ? BP_PAGE_DATA_SIZE : data_len;
+    data_length.push_back(insert_len);
+    data_len -= insert_len;
+  }
+  for (int i = data_length.size() - 1; i >= 0 ;i--) {
+    int insert_len = data_length[i];
+    Frame *frame = nullptr;
+    if ((ret = disk_buffer_pool_->allocate_page(&frame)) != RC::SUCCESS) {
+      LOG_ERROR("Failed to allocate page while inserting record. ret:%d", ret);
+      return ret;
+    }
+
+    current_page_num = frame->page_num();
+    // 这里就随便初始化一下，因为这个page的所有部分都要用来存储text
+    ret = record_page_handler.init_empty_page(*disk_buffer_pool_, current_page_num, 10);
+    if (ret != RC::SUCCESS) {
+      frame->unpin();
+      LOG_ERROR("Failed to init empty page. ret:%d", ret);
+      // this is for allocate_page
+      return ret;
+    }
+    ret = record_page_handler.insert_text(data + length - data_offset - insert_len, insert_len, before_page_num);
+    if (ret != RC::SUCCESS) {
+      LOG_WARN("failed to insert text. rc=%s", strrc(ret));
+      return ret;
+    }
+    data_offset += insert_len;
+    before_page_num = current_page_num;
+    // frame 在allocate_page的时候，是有一个pin的，在init_empty_page时又会增加一个，所以这里手动释放一个
+    frame->unpin();
+  }
+  pageNum = current_page_num;
+  return RC::SUCCESS;
+}
+
 RC RecordFileHandler::recover_insert_record(const char *data, int record_size, const RID &rid)
 {
   RC ret = RC::SUCCESS;
@@ -528,6 +697,29 @@ RC RecordFileHandler::get_record(RecordPageHandler &page_handler, const RID *rid
   return page_handler.get_record(rid, rec);
 }
 
+RC RecordFileHandler::get_text(const PageNum pageNum, std::string &data) {
+  RecordPageHandler page_handler;
+
+  PageNum next_page_num = pageNum;
+  // 将多段text拼接起来
+
+  while (next_page_num != 0) {
+    RC rc = page_handler.init(*disk_buffer_pool_, pageNum, true);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to init record page handler.page number=%d", pageNum);
+      return rc;
+    }
+    string next_str;
+    rc = page_handler.get_text(&next_page_num, next_str);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get text from page number %d", pageNum);
+      return rc;
+    }
+    data += next_str;
+  }
+  return RC::SUCCESS;
+}
+
 RC RecordFileHandler::visit_record(const RID &rid, bool readonly, std::function<void(Record &)> visitor)
 {
   RecordPageHandler page_handler;
@@ -549,6 +741,125 @@ RC RecordFileHandler::visit_record(const RID &rid, bool readonly, std::function<
   return rc;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+TextFileHandler::~TextFileHandler() { this->close(); }
+
+RC TextFileHandler::init(DiskBufferPool *buffer_pool)
+{
+  if (disk_buffer_pool_ != nullptr) {
+    LOG_ERROR("record file handler has been openned.");
+    return RC::RECORD_OPENNED;
+  }
+
+  disk_buffer_pool_ = buffer_pool;
+
+  // RC rc = init_free_pages();
+
+  LOG_INFO("open record file handle done");
+  return RC::SUCCESS;
+}
+
+void TextFileHandler::close()
+{
+  if (disk_buffer_pool_ != nullptr) {
+    // free_pages_.clear();
+    disk_buffer_pool_ = nullptr;
+  }
+}
+
+RC TextFileHandler::delete_text(const PageNum pageNum) 
+{
+  RC rc = RC::SUCCESS;
+  TextPageHandler page_handler;
+  PageNum next_page_num = pageNum;
+  // 将多段text拼接起来
+
+  while (next_page_num != 0) {
+    RC rc = page_handler.init(*disk_buffer_pool_, pageNum, true);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to init record page handler.page number=%d", pageNum);
+      return rc;
+    }
+    string next_str;
+    rc = page_handler.get_text(&next_page_num, next_str);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get text from page number %d", pageNum);
+      return rc;
+    }
+    rc = disk_buffer_pool_->dispose_page(next_page_num);
+  }
+  return rc;
+}
+
+RC TextFileHandler::insert_text(const char *data, int length, PageNum &pageNum) { 
+  RC ret = RC::SUCCESS;
+
+  TextPageHandler record_page_handler;
+  PageNum current_page_num = 0;
+  PageNum before_page_num = 0;
+  std::vector<int> data_length;
+  // 对data按照BP_PAGE_DATA_SIZE进行分割，并逆序遍历分割串，以获得正确的next_page_num
+  int data_len = length;
+  int data_offset = 0;
+  const int real_data_size = BP_PAGE_DATA_SIZE - sizeof(PageNum) - sizeof(int);
+  while (data_len > 0) {
+    int insert_len = data_len > real_data_size ? real_data_size : data_len;
+    data_length.push_back(insert_len);
+    data_len -= insert_len;
+  }
+  for (int i = data_length.size() - 1; i >= 0 ;i--) {
+    int insert_len = data_length[i];
+    Frame *frame = nullptr;
+    if ((ret = disk_buffer_pool_->allocate_page(&frame)) != RC::SUCCESS) {
+      LOG_ERROR("Failed to allocate page while inserting record. ret:%d", ret);
+      return ret;
+    }
+
+    current_page_num = frame->page_num();
+    ret = record_page_handler.init_empty_page(*disk_buffer_pool_, current_page_num);
+    if (ret != RC::SUCCESS) {
+      frame->unpin();
+      LOG_ERROR("Failed to init empty page. ret:%d", ret);
+      // this is for allocate_page
+      return ret;
+    }
+    ret = record_page_handler.insert_text(data + length - data_offset - insert_len, insert_len, before_page_num);
+    if (ret != RC::SUCCESS) {
+      LOG_WARN("failed to insert text. rc=%s", strrc(ret));
+      return ret;
+    }
+    data_offset += insert_len;
+    before_page_num = current_page_num;
+    // frame 在allocate_page的时候，是有一个pin的，在init_empty_page时又会增加一个，所以这里手动释放一个
+    frame->unpin();
+  }
+  pageNum = current_page_num;
+  return RC::SUCCESS;
+}
+
+RC TextFileHandler::get_text(const PageNum pageNum, std::string &data) {
+  TextPageHandler page_handler;
+
+  PageNum next_page_num = pageNum;
+  // 将多段text拼接起来
+
+  while (next_page_num != 0) {
+    RC rc = page_handler.init(*disk_buffer_pool_, pageNum, true);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to init record page handler.page number=%d", pageNum);
+      return rc;
+    }
+    string next_str;
+    rc = page_handler.get_text(&next_page_num, next_str);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to get text from page number %d", pageNum);
+      return rc;
+    }
+    data += next_str;
+  }
+  return RC::SUCCESS;
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 RecordFileScanner::~RecordFileScanner() { close_scan(); }

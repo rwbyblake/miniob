@@ -28,6 +28,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/table/table.h"
 #include "storage/table/table_meta.h"
 #include "storage/trx/trx.h"
+#include "table.h"
 
 Table::~Table()
 {
@@ -39,6 +40,11 @@ Table::~Table()
   if (data_buffer_pool_ != nullptr) {
     data_buffer_pool_->close_file();
     data_buffer_pool_ = nullptr;
+  }
+
+    if(text_buffer_pool_ != nullptr) {
+    text_buffer_pool_->close_file();
+    text_buffer_pool_ = nullptr;
   }
 
   for (std::vector<Index *>::iterator it = indexes_.begin(); it != indexes_.end(); ++it) {
@@ -117,6 +123,19 @@ RC Table::create(int32_t table_id, const char *path, const char *name, const cha
     return rc;
   }
 
+  std::string text_file = table_text_file(base_dir, name);
+  rc = bpm.create_file(text_file.c_str());
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to create disk buffer pool of text file. file name=%s", text_file.c_str());
+    return rc;
+  }
+  rc = init_text_handler(base_dir);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to create table %s due to init text handler failed.", text_file.c_str());
+    // don't need to remove the data_file
+    return rc;
+  }
+
   base_dir_ = base_dir;
   LOG_INFO("Successfully create table %s:%s", base_dir, name);
   return rc;
@@ -138,12 +157,25 @@ RC Table::drop(const char *path) {
   delete record_handler_;
   record_handler_ = nullptr;
 
+  // destroy text handler
+  text_handler_->close();
+  delete text_handler_;
+  text_handler_ = nullptr;
+
   // destroy buffer_pool and remove data file
   BufferPoolManager &bpm = BufferPoolManager::instance();
   std::string data_file = table_data_file(base_dir_.c_str(), table_meta_.name());
   rc = bpm.remove_file(data_file.c_str());
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to remove disk buffer pool of data file. file name=%s", data_file.c_str());
+    return rc;
+  }
+
+    // destroy buffer_pool and remove text file
+  std::string text_file = table_text_file(base_dir_.c_str(), table_meta_.name());
+  rc = bpm.remove_file(text_file.c_str());
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to remove disk buffer pool of text file. file name=%s", data_file.c_str());
     return rc;
   }
 
@@ -180,6 +212,12 @@ RC Table::open(const char *meta_file, const char *base_dir)
     return rc;
   }
 
+  // 加载text数据
+  rc = init_text_handler(base_dir);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to open table %s due to init text handler failed.", base_dir);
+    return rc;
+  }
   base_dir_ = base_dir;
 
   const int index_num = table_meta_.index_num();
@@ -369,14 +407,20 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
       if (copy_len > data_len) {
         copy_len = data_len + 1;
       }
+    }else if (field->type() == TEXTS) {
+      PageNum page_num;
+      text_handler_->insert_text(value.data(), value.length(), page_num);
+      memcpy(record_data + field->offset(), (const char*)&page_num, copy_len);
+    } else {
+      memcpy(record_data + field->offset(), value.data(), copy_len);
     }
-    memcpy(record_data + field->offset(), value.data(), copy_len);
+
   }
 
   record.set_data_owner(record_data, record_size, bitmap_size);
   return RC::SUCCESS;
 }
-
+// |4 length|4 next_page_num|length data|
 RC Table::init_record_handler(const char *base_dir)
 {
   std::string data_file = table_data_file(base_dir, table_meta_.name());
@@ -402,6 +446,29 @@ RC Table::init_record_handler(const char *base_dir)
   return rc;
 }
 
+RC Table::init_text_handler(const char *base_dir)
+{
+  RC rc = RC::SUCCESS;
+  std::string text_file = table_text_file(base_dir, table_meta_.name());
+  rc = BufferPoolManager::instance().open_file(text_file.c_str(), text_buffer_pool_);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to open disk buffer pool for file:%s. rc=%d:%s", text_file.c_str(), rc, strrc(rc));
+    return rc;
+  }
+  text_handler_ = new TextFileHandler();
+
+  rc = text_handler_->init(text_buffer_pool_);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to init text handler. rc=%s", strrc(rc));
+    text_buffer_pool_->close_file();
+    text_buffer_pool_ = nullptr;
+    delete text_handler_;
+    text_handler_ = nullptr;
+    return rc;
+  }
+  return rc;
+}
+
 RC Table::get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly)
 {
   RC rc = scanner.open_scan(this, *data_buffer_pool_, trx, readonly, nullptr);
@@ -410,8 +477,11 @@ RC Table::get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly
   }
   return rc;
 }
-
+RC Table::get_text(PageNum pageNum, std::string &str) const { 
+  return text_handler_->get_text(pageNum, str);
+}
 RC Table::create_index(Trx *trx, bool unique, const std::vector<const FieldMeta*> &field_metas, const char *index_name)
+
 {
   if (common::is_blank(index_name) || field_metas.empty()) {
     LOG_INFO("Invalid input arguments, table name is %s, index_name is blank or attribute_name is blank", name());
@@ -548,7 +618,12 @@ RC Table::delete_record(const Record &record)
            name(), index->index_meta().name(), record.rid().to_string().c_str(), strrc(rc));
   }
   rc = record_handler_->delete_record(&record.rid());
+
   return rc;
+}
+
+RC Table::delete_text(const PageNum &pageNum) {
+  return text_handler_->delete_text(pageNum);
 }
 
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid)

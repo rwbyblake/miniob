@@ -159,30 +159,25 @@ public:
     common::Bitmap bitmap(record_->data(), record_->bitmap_len());
 
     if (bitmap.get_bit(index)) {
-
       cell.set_type(NULLS);
       cell.set_data("NULL", 5);
     }
     else {
-      FieldExpr *field_expr = speces_[index];
+      FieldExpr       *field_expr = speces_[index];
       const FieldMeta *field_meta = field_expr->field().meta();
-      // if (TEXTS == field_meta->type()) {
-      //   cell.set_type(CHARS);
-      //   int64_t offset = *(int64_t*)(record_->data() + field_meta->offset());
-      //   int64_t length = *(int64_t*)(record_->data() + field_meta->offset() + sizeof(int64_t));
-      //   char *text = (char*)malloc(length);
-      //   rc = table_->read_text(offset, length, text);
-      //   if (RC::SUCCESS != rc) {
-      //     LOG_WARN("Failed to read text from table, rc=%s", strrc(rc));
-      //     return rc;
-      //   }
-      //   cell.set_data(text, length);
-      //   free(text);
-      // }
-      // else {
-        cell.set_type(field_meta->type());
+      cell.set_type(field_meta->type());
+      if (field_meta->type() == TEXTS) {
+        // 从record_->data()中获取PageNum
+        PageNum begin_page_num = *(reinterpret_cast<const PageNum *>(this->record_->data() + field_meta->offset()));
+        // PageNum begin_rid = (this->record_->data() + field_meta->offset(), field_meta->len());
+        std::string data;
+        if (table_->get_text(begin_page_num, data) != RC::SUCCESS) {
+          return RC::INTERNAL;
+        }
+        cell.set_data(data.c_str(), data.size());
+      } else {
         cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
-      // }
+      }
     }
     return RC::SUCCESS;
   }
