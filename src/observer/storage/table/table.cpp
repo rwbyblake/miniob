@@ -350,14 +350,14 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
 
   // 复制所有字段的值
   int   record_size = table_meta_.record_size();
-  char *record_data = (char *)malloc(record_size);
+  char *record_data = (char *)malloc(record_size);//数据+判断null类型的bitmap
 
   //申请空间
-  char *data = (char *)malloc(record_size);//数据+判断null类型的bitmap
+  // char *data = (char *)malloc(record_size);
 
   //前半为位图
-  memcpy(data, "\0", bitmap_size);
-  common::Bitmap bitmap(data, bitmap_size);
+  memcpy(record_data, "\0", bitmap_size);
+  common::Bitmap bitmap(record_data, bitmap_size);
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field    = table_meta_.field(i + normal_field_start_index);
     const Value     &value    = values[i];
