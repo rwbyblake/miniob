@@ -414,7 +414,7 @@ public:
   RC get_text(const PageNum pageNum, std::string &data);
   private:
   DiskBufferPool             *disk_buffer_pool_ = nullptr;
-  common::Mutex               lock_;  ///< 当编译时增加-DCONCURRENCY=ON 选项时，才会真正的支持并发
+//  common::Mutex               lock_;  ///< 当编译时增加-DCONCURRENCY=ON 选项时，才会真正的支持并发
 };
 
 /**
