@@ -23,6 +23,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/join_logical_operator.h"
 #include "sql/operator/logical_operator.h"
 #include "sql/operator/predicate_logical_operator.h"
+#include "sql/operator/order_logical_operator.h"
 #include "sql/operator/project_logical_operator.h"
 #include "sql/operator/table_get_logical_operator.h"
 #include "sql/operator/update_logical_operator.h"
@@ -31,6 +32,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/delete_stmt.h"
 #include "sql/stmt/explain_stmt.h"
 #include "sql/stmt/filter_stmt.h"
+#include "sql/stmt/order_stmt.h"
 #include "sql/stmt/insert_stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/stmt.h"
@@ -133,8 +135,24 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
       project_oper->add_child(std::move(table_oper));
     }
   }
+  unique_ptr<LogicalOperator> top_oper = std::move(project_oper); // maybe null
 
-  logical_operator.swap(project_oper);
+  if (select_stmt->order_stmt()) {
+    unique_ptr<LogicalOperator> orderby_oper;
+    rc = create_plan(select_stmt->order_stmt(), orderby_oper);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create orderby logical plan. rc=%s", strrc(rc));
+      return rc;
+    }
+    if (orderby_oper) {
+      if (top_oper) {
+        orderby_oper->add_child(std::move(top_oper));
+      }
+      top_oper = std::move(orderby_oper);
+    }
+  }
+
+  logical_operator.swap(top_oper);
   return RC::SUCCESS;
 }
 
@@ -165,6 +183,18 @@ RC LogicalPlanGenerator::create_plan(FilterStmt *filter_stmt, unique_ptr<Logical
   }
 
   logical_operator = std::move(predicate_oper);
+  return RC::SUCCESS;
+}
+RC LogicalPlanGenerator::create_plan(OrderStmt *order_stmt, unique_ptr<LogicalOperator> &logical_operator)
+{
+  if (order_stmt == nullptr) {
+    logical_operator = nullptr;
+    return RC::SUCCESS;
+  }
+  unique_ptr<LogicalOperator> order_oper(
+      new OrderLogicalOperator(std::move(order_stmt->order_units()),
+          std::move(order_stmt->get_exprs())));
+  logical_operator = std::move(order_oper);
   return RC::SUCCESS;
 }
 

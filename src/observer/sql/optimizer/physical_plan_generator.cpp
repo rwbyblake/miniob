@@ -36,7 +36,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/optimizer/physical_plan_generator.h"
 #include "sql/operator/update_logical_operator.h"
 #include "sql/operator/update_physical_operator.h"
-
+#include "sql/operator/order_logical_operator.h"
+#include "sql/operator/order_physical_operator.h"
 using namespace std;
 
 RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<PhysicalOperator> &oper)
@@ -54,6 +55,10 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
 
     case LogicalOperatorType::PREDICATE: {
       return create_plan(static_cast<PredicateLogicalOperator &>(logical_operator), oper);
+    } break;
+
+    case LogicalOperatorType::ORDER: {
+      return create_plan(static_cast<OrderLogicalOperator &>(logical_operator), oper);
     } break;
 
     case LogicalOperatorType::PROJECTION: {
@@ -205,6 +210,33 @@ RC PhysicalPlanGenerator::create_plan(ProjectLogicalOperator &project_oper, uniq
   oper = unique_ptr<PhysicalOperator>(project_operator);
 
   LOG_TRACE("create a project physical operator");
+  return rc;
+}
+RC PhysicalPlanGenerator::create_plan(OrderLogicalOperator &order_oper, unique_ptr<PhysicalOperator> &oper)
+{
+  vector<unique_ptr<LogicalOperator>> &child_opers = order_oper.children();
+  unique_ptr<PhysicalOperator> child_phy_oper;
+
+  RC rc = RC::SUCCESS;
+  if (!child_opers.empty()) {
+    LogicalOperator *child_oper = child_opers.front().get();
+    rc = create(*child_oper, child_phy_oper);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create orderby logical operator's child physical operator. rc=%s", strrc(rc));
+      return rc;
+    }
+  }
+
+  OrderPhysicalOperator *orderby_operator = new OrderPhysicalOperator(
+      std::move(order_oper.order_units()),
+      std::move(order_oper.exprs()));
+  if (child_phy_oper) {
+    orderby_operator->add_child(std::move(child_phy_oper));
+  }
+
+  oper = unique_ptr<PhysicalOperator>(orderby_operator);
+
+  LOG_TRACE("create a orderby physical operator");
   return rc;
 }
 

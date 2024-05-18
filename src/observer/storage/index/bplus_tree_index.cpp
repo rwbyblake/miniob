@@ -27,7 +27,7 @@ RC BplusTreeIndex::create(const char *file_name, const bool unique, const IndexM
     LOG_WARN("Failed to create index due to the index has been created before. file_name:%s, index:%s, field:%s",
         file_name,
         index_meta.name(),
-        index_meta.field());
+        index_meta.field().front().c_str());
     return RC::RECORD_OPENNED;
   }
 
@@ -38,14 +38,14 @@ RC BplusTreeIndex::create(const char *file_name, const bool unique, const IndexM
     LOG_WARN("Failed to create index_handler, file_name:%s, index:%s, field:%s, rc:%s",
         file_name,
         index_meta.name(),
-        index_meta.field(),
+        index_meta.field().front().c_str(),
         strrc(rc));
     return rc;
   }
 
   inited_ = true;
   LOG_INFO(
-      "Successfully create index, file_name:%s, index:%s, field:%s", file_name, index_meta.name(), index_meta.field());
+      "Successfully create index, file_name:%s, index:%s, field:%s", file_name, index_meta.name(), index_meta.field().front().c_str());
   return RC::SUCCESS;
 }
 RC BplusTreeIndex::drop() {
@@ -58,7 +58,7 @@ RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, cons
     LOG_WARN("Failed to open index due to the index has been initedd before. file_name:%s, index:%s, field:%s",
         file_name,
         index_meta.name(),
-        index_meta.field());
+        index_meta.field().front().c_str());
     return RC::RECORD_OPENNED;
   }
 
@@ -69,21 +69,21 @@ RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, cons
     LOG_WARN("Failed to open index_handler, file_name:%s, index:%s, field:%s, rc:%s",
         file_name,
         index_meta.name(),
-        index_meta.field(),
+        index_meta.field().front().c_str(),
         strrc(rc));
     return rc;
   }
 
   inited_ = true;
   LOG_INFO(
-      "Successfully open index, file_name:%s, index:%s, field:%s", file_name, index_meta.name(), index_meta.field());
+      "Successfully open index, file_name:%s, index:%s, field:%s", file_name, index_meta.name(), index_meta.field().front().c_str());
   return RC::SUCCESS;
 }
 
 RC BplusTreeIndex::close()
 {
   if (inited_) {
-    LOG_INFO("Begin to close index, index:%s, field:%s", index_meta_.name(), index_meta_.field());
+    LOG_INFO("Begin to close index, index:%s, field:%s", index_meta_.name(), index_meta_.field().front().c_str());
     index_handler_.close();
     inited_ = false;
   }

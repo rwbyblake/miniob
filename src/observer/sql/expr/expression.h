@@ -41,6 +41,7 @@ enum class ExprType
   COMPARISON,   ///< 需要做比较的表达式
   CONJUNCTION,  ///< 多个表达式使用同一种关系(AND或OR)来联结
   ARITHMETIC,   ///< 算术运算
+  AGGRFUNCTION, ///< 聚集函数
 };
 
 /**

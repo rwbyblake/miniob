@@ -47,8 +47,8 @@ inline std::string date_to_str(int date)
     if (year > 9999) {
         year = 9999;
     }
-    sprintf(str, "%d-%02d-%02d", year, month, day);
-    return std::move(std::string(str));
+    snprintf(str, 11, "%d-%02d-%02d", year, month, day);
+    return {str};
 }
 
 #endif
