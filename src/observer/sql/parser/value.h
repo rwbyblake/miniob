@@ -70,6 +70,11 @@ public:
   {
     this->attr_type_ = NULLS;
   }
+  
+  bool is_string() const {
+    return this->attr_type_ == CHARS;
+  }
+
   bool is_null() const {
     return this->attr_type_ == NULLS;
   }

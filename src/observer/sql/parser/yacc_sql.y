@@ -83,6 +83,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         EXIT
         DOT //QUOTE
         INTO
+        LIKE
         VALUES
         FROM
         WHERE
@@ -718,6 +719,8 @@ comp_op:
     | LE { $$ = LESS_EQUAL; }
     | GE { $$ = GREAT_EQUAL; }
     | NE { $$ = NOT_EQUAL; }
+    | LIKE { $$ = LIKE_OP;}
+    | NOT LIKE {$$ = NOT_LIKE_OP;}
     | IS { $$ = IS_NULL; }
     | IS NOT { $$ = IS_NOT_NULL; }
     ;

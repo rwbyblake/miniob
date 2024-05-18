@@ -1,0 +1,48 @@
+{
+	"fields" : 
+	[
+		{
+			"len" : 10,
+			"name" : "id",
+			"nullable" : true,
+			"offset" : 1,
+			"type" : "ints",
+			"visible" : true
+		},
+		{
+			"len" : 100,
+			"name" : "title",
+			"nullable" : true,
+			"offset" : 11,
+			"type" : "chars",
+			"visible" : true
+		},
+		{
+			"len" : 200,
+			"name" : "authors",
+			"nullable" : true,
+			"offset" : 111,
+			"type" : "chars",
+			"visible" : true
+		},
+		{
+			"len" : 10,
+			"name" : "publisher_id",
+			"nullable" : true,
+			"offset" : 311,
+			"type" : "ints",
+			"visible" : true
+		},
+		{
+			"len" : 10,
+			"name" : "copies",
+			"nullable" : true,
+			"offset" : 321,
+			"type" : "ints",
+			"visible" : true
+		}
+	],
+	"indexes" : null,
+	"table_id" : 0,
+	"table_name" : "Book"
+}

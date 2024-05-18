@@ -14,6 +14,8 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/expr/expression.h"
 #include "sql/expr/tuple.h"
+#include "common/lang/string.h"
+#include <regex>
 
 using namespace std;
 
@@ -76,9 +78,34 @@ RC CastExpr::try_get_value(Value &value) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+static void replace_all(std::string &str, const std::string &from, const std::string &to)
+{
+  if (from.empty()) {
+    return;
+  }
+  size_t pos = 0;
+  while (std::string::npos != (pos = str.find(from, pos))) {
+    str.replace(pos, from.length(), to);
+    pos += to.length();  // in case 'to' contains 'from'
+  }
+}
+static bool str_like(const Value &left, const Value &right)
+{
+  std::string raw_reg(right.data());
+  replace_all(raw_reg, "_", "[^']");
+  replace_all(raw_reg, "%", "[^']*");
+  std::regex reg(raw_reg.c_str(), std::regex_constants::ECMAScript | std::regex_constants::icase);
+  bool res = std::regex_match(left.data(), reg);
+  return res;
+}
+
 
 ComparisonExpr::ComparisonExpr(CompOp comp, unique_ptr<Expression> left, unique_ptr<Expression> right)
     : comp_(comp), left_(std::move(left)), right_(std::move(right))
+{}
+
+ComparisonExpr::ComparisonExpr(CompOp comp, Expression* left, Expression* right)
+    : comp_(comp), left_(left), right_(right)
 {}
 
 ComparisonExpr::~ComparisonExpr() {}
@@ -88,6 +115,13 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
   RC  rc         = RC::SUCCESS;
   int cmp_result = left.compare(right);
   result         = false;
+
+  if (comp_ == LIKE_OP || comp_ == NOT_LIKE_OP) {
+    ASSERT(left.is_string() && right.is_string(), "[NOT_]LIKE_OP lhs or rhs NOT STRING!");
+    result = comp_ == LIKE_OP ? str_like(left, right) : !str_like(left, right);
+    return rc;
+  }
+
   switch (comp_) {
     case EQUAL_TO: {
       result = (0 == cmp_result);

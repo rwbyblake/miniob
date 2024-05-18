@@ -407,6 +407,7 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
       if (copy_len > data_len) {
         copy_len = data_len + 1;
       }
+      memcpy(record_data+field->offset(),value.data(),copy_len);
     }else if (field->type() == TEXTS) {
       PageNum page_num;
       text_handler_->insert_text(value.data(), value.length(), page_num);
