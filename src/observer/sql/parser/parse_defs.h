@@ -39,7 +39,7 @@ struct RelAttrSqlNode
 {
   std::string relation_name;   ///< relation name (may be NULL) 表名
   std::string attribute_name;  ///< attribute name              属性名
-  bool is_aggr;
+  bool is_aggr = false;
   AggrFuncType aggr_type;
 };
 

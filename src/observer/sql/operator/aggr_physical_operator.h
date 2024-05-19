@@ -21,9 +21,9 @@ See the Mulan PSL v2 for more details. */
 class AggrPhysicalOperator : public PhysicalOperator
 {
 public:
-  AggrPhysicalOperator(std::vector<std::unique_ptr<AggrFuncExpr>> &&aggr_exprs);
+  explicit AggrPhysicalOperator(std::vector<std::unique_ptr<AggrFuncExpr>> &&aggr_exprs);
 
-  virtual ~AggrPhysicalOperator() = default;
+  ~AggrPhysicalOperator() override = default;
 
   PhysicalOperatorType type() const override
   {

@@ -138,17 +138,6 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
   }
   unique_ptr<LogicalOperator> top_oper = std::move(project_oper); // maybe null
 
-
-  if (select_stmt->query_fields().empty()) {
-    std::vector<std::unique_ptr<AggrFuncExpr>> aggrs;
-    for (auto &expr : select_stmt->get_aggr_exprs()) aggrs.emplace_back(static_cast<AggrFuncExpr*>(expr->deep_copy().release()));
-    unique_ptr<LogicalOperator> aggr_oper(
-    new AggrLogicalOperator(std::move(aggrs)));
-    if(top_oper) {
-      aggr_oper->add_child(std::move(top_oper));
-    }
-    top_oper = std::move(aggr_oper);
-  }
   if (select_stmt->order_stmt()) {
     unique_ptr<LogicalOperator> orderby_oper;
     rc = create_plan(select_stmt->order_stmt(), orderby_oper);
@@ -163,6 +152,17 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
       top_oper = std::move(orderby_oper);
     }
   }
+  if (select_stmt->query_fields().empty()) {
+    std::vector<std::unique_ptr<AggrFuncExpr>> aggrs;
+    for (auto &expr : select_stmt->get_aggr_exprs()) aggrs.emplace_back(static_cast<AggrFuncExpr*>(expr->deep_copy().release()));
+    unique_ptr<LogicalOperator> aggr_oper(
+    new AggrLogicalOperator(std::move(aggrs)));
+    if(top_oper) {
+      aggr_oper->add_child(std::move(top_oper));
+    }
+    top_oper = std::move(aggr_oper);
+  }
+
 
   logical_operator.swap(top_oper);
   return RC::SUCCESS;

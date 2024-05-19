@@ -28,8 +28,8 @@ See the Mulan PSL v2 for more details. */
 class AggrLogicalOperator : public LogicalOperator
 {
 public:
-  AggrLogicalOperator(std::vector<std::unique_ptr<AggrFuncExpr>> &&agg_exprs);
-  virtual ~AggrLogicalOperator() = default;
+  explicit AggrLogicalOperator(std::vector<std::unique_ptr<AggrFuncExpr>> &&agg_exprs);
+  ~AggrLogicalOperator() override = default;
 
   LogicalOperatorType type() const override
   {
