@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/rc.h"
 #include "sql/stmt/stmt.h"
+#include "sql/expr/expression.h"
 #include "storage/field/field.h"
 
 class FieldMeta;
@@ -48,9 +49,20 @@ public:
   FilterStmt                 *filter_stmt() const { return filter_stmt_; }
   OrderStmt                  *order_stmt()  const { return order_stmt_; }
 
+  std::vector<std::unique_ptr<AggrFuncExpr>> &get_aggr_exprs()
+  {
+    return aggr_exprs_;
+  }
+
+  void set_aggr_exprs(std::vector<std::unique_ptr<AggrFuncExpr>> &&aggr_exprs)
+  {
+    aggr_exprs_ = std::move(aggr_exprs);
+  }
+
 private:
   std::vector<Field>   query_fields_;
   std::vector<Table *> tables_;
   FilterStmt          *filter_stmt_ = nullptr;
+  std::vector<std::unique_ptr<AggrFuncExpr>> aggr_exprs_; // 聚集函数表达式
   OrderStmt           *order_stmt_  = nullptr;
 };

@@ -43,10 +43,39 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     LOG_WARN("invalid argument. db is null");
     return RC::INVALID_ARGUMENT;
   }
+  // SelectStmt *select_stmt = new SelectStmt();
 
   // collect tables in `from` statement
   std::vector<Table *>                     tables;
+  // std::unordered_map<std::string, std::string> table_alias_map; // <table src name, table alias name>
   std::unordered_map<std::string, Table *> table_map;
+  // std::vector<std::unique_ptr<Expression>> projects;
+  // std::vector<Field> query_fields;
+  // RC rc;
+  
+  // LOG_INFO("got %d tables in from clause and %d exprs in query clause", tables.size(), projects.size());
+
+  // bool is_single_table = (tables.size() == 1);
+  // Table *default_table = nullptr;
+  // if (tables.size() == 1) {
+  //   default_table = tables[0];
+  // }
+
+  // bool has_aggr_func_expr = false;
+  // auto check_project_expr = [&table_map, &tables, &default_table, &table_alias_map, &has_aggr_func_expr](Expression *expr) {
+  //   if (expr->type() == ExprType::FIELD) {
+  //     FieldExpr* field_expr = static_cast<FieldExpr*>(expr);
+  //     return field_expr->check_field(table_map, tables, default_table, table_alias_map);
+  //   }
+  //   if (expr->type() == ExprType::AGGRFUNCTION) {
+  //     has_aggr_func_expr = true;
+  //   }
+  //   return RC::SUCCESS;
+  // };
+
+
+
+
   for (size_t i = 0; i < select_sql.relations.size(); i++) {
     const char *table_name = select_sql.relations[i].c_str();
     if (nullptr == table_name) {
@@ -66,6 +95,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
 
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
+  std::vector<std::unique_ptr<AggrFuncExpr>> aggr_exprs;
   for (int i = static_cast<int>(select_sql.attributes.size()) - 1; i >= 0; i--) {
     const RelAttrSqlNode &relation_attr = select_sql.attributes[i];
 
@@ -78,8 +108,20 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     } else if (!common::is_blank(relation_attr.relation_name.c_str())) {
       const char *table_name = relation_attr.relation_name.c_str();
       const char *field_name = relation_attr.attribute_name.c_str();
+      if (relation_attr.is_aggr) {
+        for (Table *table: tables) {
+          Expression* rhs = nullptr;
+          const TableMeta &table_meta = table->table_meta();
+          FieldExpr* field_expr = new FieldExpr(table, table_meta.field(0));
+          if (relation_attr.relation_name == "*") rhs = new ValueExpr(Value(1));
+          else rhs = field_expr;
+          std::unique_ptr<AggrFuncExpr> aggr = std::make_unique<AggrFuncExpr>(relation_attr.aggr_type, rhs);
+          aggr->set_name(aggr->get_func_name() + "(" + relation_attr.attribute_name + ")");
+          aggr_exprs.push_back(std::move(aggr));
 
-      if (0 == strcmp(table_name, "*")) {
+        }
+      }
+      else if (0 == strcmp(table_name, "*")) {
         if (0 != strcmp(field_name, "*")) {
           LOG_WARN("invalid field name while table is *. attr=%s", field_name);
           return RC::SCHEMA_FIELD_MISSING;
@@ -104,7 +146,18 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
             return RC::SCHEMA_FIELD_MISSING;
           }
 
-          query_fields.push_back(Field(table, field_meta));
+          if (relation_attr.is_aggr) {
+            Expression* rhs = nullptr;
+            FieldExpr* field_expr = new FieldExpr(table, field_meta);
+            if (relation_attr.relation_name == "*") rhs = new ValueExpr(Value(1));
+            else rhs = field_expr;
+            std::unique_ptr<AggrFuncExpr> aggr = std::make_unique<AggrFuncExpr>(relation_attr.aggr_type, rhs);
+            aggr->set_name(aggr->get_func_name() + "(" + relation_attr.attribute_name + ")");
+            aggr_exprs.push_back(std::move(aggr));
+          } else {
+            query_fields.push_back(Field(table, field_meta));
+          }
+          
         }
       }
     } else {
@@ -119,8 +172,17 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
         LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name.c_str());
         return RC::SCHEMA_FIELD_MISSING;
       }
-
-      query_fields.push_back(Field(table, field_meta));
+      if (relation_attr.is_aggr) {
+        Expression* rhs = nullptr;
+        FieldExpr* field_expr = new FieldExpr(table, field_meta);
+        if (relation_attr.relation_name == "*") rhs = new ValueExpr(Value(1));
+        else rhs = field_expr;
+        std::unique_ptr<AggrFuncExpr> aggr = std::make_unique<AggrFuncExpr>(relation_attr.aggr_type, rhs);
+        aggr->set_name(aggr->get_func_name() + "(" + relation_attr.attribute_name + ")");
+        aggr_exprs.push_back(std::move(aggr));
+      } else {
+        query_fields.push_back(Field(table, field_meta));
+      }
     }
   }
 
@@ -160,8 +222,49 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     return rc;
   }
 
+
+  // if (has_aggr_func_expr) {
+  //   // 1. 提取 AggrFuncExpr 以及不在 AggrFuncExpr 中的 FieldExpr
+  //   std::vector<std::unique_ptr<AggrFuncExpr>> aggr_exprs;
+  //   //select 子句中出现的所有 fieldexpr 都需要传递收集起来,
+  //   std::vector<std::unique_ptr<FieldExpr>> field_exprs;//这个 vector 需要传递给 order by 算子
+  //   std::vector<std::unique_ptr<Expression>> field_exprs_not_aggr; //select 后的所有非 aggrexpr 的 field_expr,用来判断语句是否合法 
+  //   // 用于从 project exprs 中提取所有 aggr func exprs. e.g. min(c1 + 1) + 1
+  //   auto collect_aggr_exprs = [&aggr_exprs](Expression * expr) {
+  //     if (expr->type() == ExprType::AGGRFUNCTION) {
+  //       aggr_exprs.emplace_back(static_cast<AggrFuncExpr*>(static_cast<AggrFuncExpr*>(expr)->deep_copy().release()));
+  //     }
+  //   };
+  //   // 用于从 project exprs 中提取所有field expr,
+  //   auto collect_field_exprs = [&field_exprs](Expression * expr) {
+  //     if (expr->type() == ExprType::FIELD) {
+  //       field_exprs.emplace_back(static_cast<FieldExpr*>(static_cast<FieldExpr*>(expr)->deep_copy().release()));
+  //     }
+  //   };
+  //   // 用于从 project exprs 中提取所有不在 aggr func expr 中的 field expr
+  //   auto collect_exprs_not_aggexpr = [&field_exprs_not_aggr](Expression * expr) {
+  //       if (expr->type() == ExprType::FIELD) {
+  //       field_exprs_not_aggr.emplace_back(static_cast<FieldExpr*>(static_cast<FieldExpr*>(expr)->deep_copy().release()));
+  //     }
+  //   };
+  //   // do extract
+  //   for (auto& project : projects) {
+  //     project->traverse(collect_aggr_exprs);//提取所有 aggexpr
+  //     project->traverse(collect_field_exprs );//提取 select clause 中的所有 field_expr,传递给groupby stmt
+  //     //project->traverse(collect_field_exprs, [](const Expression* expr) { return expr->type() != ExprType::AGGRFUNCTION; });
+
+  //     //提取所有不在 aggexpr 中的 field_expr，用于语义检查
+  //     project->traverse(collect_exprs_not_aggexpr,[](const Expression* expr) { return expr->type() != ExprType::AGGRFUNCTION; });
+  //   }
+
+  //   select_stmt->set_aggr_exprs(std::move(aggr_exprs));
+  // }
+
+
   // everything alright
   SelectStmt *select_stmt = new SelectStmt();
+  select_stmt->set_aggr_exprs(std::move(aggr_exprs));
+
   // TODO add expression copy
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);

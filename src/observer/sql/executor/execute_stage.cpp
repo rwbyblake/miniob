@@ -25,6 +25,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/stmt.h"
 #include "storage/default/default_handler.h"
+#include "sql/operator/aggr_physical_operator.h"
+
 
 using namespace std;
 using namespace common;
@@ -74,6 +76,9 @@ RC ExecuteStage::handle_request_with_physical_operator(SQLStageEvent *sql_event)
         } else {
           schema.append_cell(field.field_name());
         }
+      }
+      for (std::unique_ptr<AggrFuncExpr> &expr: select_stmt->get_aggr_exprs()) {
+        schema.append_cell(expr->name().c_str());
       }
     } break;
 

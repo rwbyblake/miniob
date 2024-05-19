@@ -41,6 +41,27 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   return expr;
 }
 
+AggrFuncType get_aggr_func_type(char *func_name)
+{
+  int len = strlen(func_name);
+  for (int i = 0; i < len; i++) {
+    func_name[i] = tolower(func_name[i]);
+  }
+  if (0 == strcmp(func_name, "max")) {
+    return AggrFuncType::AGG_MAX;
+  } else if (0 == strcmp(func_name, "min")) {
+    return AggrFuncType::AGG_MIN;
+  } else if (0 == strcmp(func_name, "sum")) {
+    return AggrFuncType::AGG_SUM;
+  } else if (0 == strcmp(func_name, "avg")) {
+    return AggrFuncType::AGG_AVG;
+  } else if (0 == strcmp(func_name, "count")) {
+    return AggrFuncType::AGG_COUNT;
+  } 
+  return AggrFuncType::AGGR_FUNC_TYPE_NUM;
+}
+
+
 %}
 
 %define api.pure full
@@ -74,6 +95,11 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         TRX_BEGIN
         TRX_COMMIT
         TRX_ROLLBACK
+        AGGR_MAX
+        AGGR_MIN
+        AGGR_SUM
+        AGGR_AVG
+        AGGR_COUNT
         INT_T
         STRING_T
         FLOAT_T
@@ -83,6 +109,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         EXIT
         DOT //QUOTE
         INTO
+        LIKE
         VALUES
         FROM
         WHERE
@@ -159,6 +186,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <rel_attr_list>       attr_list
 %type <expression>          expression
 %type <expression_list>     expression_list
+%type <expression>          aggr_func_expr
 %type <sql_node>            calc_stmt
 %type <sql_node>            select_stmt
 %type <sql_node>            insert_stmt
@@ -578,17 +606,34 @@ expression:
       $$->set_name(token_name(sql_string, &@$));
       delete $1;
     }
+    | aggr_func_expr {
+      $$ = $1; // AggrFuncExpr
+    }
     ;
 
-select_attr:
-    '*' {
-      $$ = new std::vector<RelAttrSqlNode>;
-      RelAttrSqlNode attr;
-      attr.relation_name  = "";
-      attr.attribute_name = "*";
-      $$->emplace_back(attr);
+aggr_func_expr:
+    ID LBRACE expression RBRACE
+    {
+      Expression* rhs = $3;
+      if ($3->type() == ExprType::FIELD) {
+        FieldExpr* field_expr = static_cast<FieldExpr*>($3);
+        if (field_expr->get_field_name() == "*") {
+          if(get_aggr_func_type($1) != AggrFuncType::AGG_COUNT) {
+            delete $3;
+            yyerror(&@$, sql_string, sql_result, scanner, "only support count(*)");
+            YYERROR;
+          }
+          rhs = new ValueExpr(Value(1));
+          delete $3;
+        }
+      }
+      $$ = new AggrFuncExpr(get_aggr_func_type($1), rhs);
+      $$->set_name(token_name(sql_string, &@$));
     }
-    | rel_attr attr_list {
+    ;
+    
+select_attr:
+   rel_attr attr_list {
       if ($2 != nullptr) {
         $$ = $2;
       } else {
@@ -611,6 +656,34 @@ rel_attr:
       $$->attribute_name = $3;
       free($1);
       free($3);
+    }    
+    | '*' DOT '*' {
+      $$ = new RelAttrSqlNode;
+      $$->relation_name  = "*";
+      $$->attribute_name = "*";
+    }
+    | ID DOT '*' {
+      $$ = new RelAttrSqlNode;
+      $$->relation_name  = $1;
+      $$->attribute_name = "*";
+      free($1);
+    }
+    | '*' {
+      $$ = new RelAttrSqlNode;
+      $$->relation_name  = "*";
+      $$->attribute_name = "*";
+    }
+    |    ID LBRACE rel_attr RBRACE
+    {
+      $$ = $3;
+      $$->is_aggr = true;
+      $$->aggr_type = get_aggr_func_type($1);
+      if ($$->attribute_name == "*" && $$->aggr_type!= AggrFuncType::AGG_COUNT) {
+        delete $3;
+        yyerror(&@$, sql_string, sql_result, scanner, "only support count(*)");
+        YYERROR;
+      }
+      free($1);
     }
     ;
 
@@ -776,6 +849,8 @@ comp_op:
     | LE { $$ = LESS_EQUAL; }
     | GE { $$ = GREAT_EQUAL; }
     | NE { $$ = NOT_EQUAL; }
+    | LIKE { $$ = LIKE_OP;}
+    | NOT LIKE {$$ = NOT_LIKE_OP;}
     | IS { $$ = IS_NULL; }
     | IS NOT { $$ = IS_NOT_NULL; }
     ;
