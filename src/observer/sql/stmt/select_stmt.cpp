@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "sql/stmt/filter_stmt.h"
+#include "sql/stmt/order_stmt.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
 
@@ -204,6 +205,22 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     LOG_WARN("cannot construct filter stmt");
     return rc;
   }
+  // create order statement in 'where' statement
+  std::vector<std::unique_ptr<Expression>> exprs;
+  for (Field field: query_fields) {
+    exprs.push_back(std::make_unique<FieldExpr>(field.table(), field.meta()));
+  }
+  OrderStmt *order_stmt = nullptr;
+  rc                      = OrderStmt::create(db,
+      default_table,
+      &table_map,
+      select_sql.orders,
+      std::move(exprs),
+      order_stmt);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("cannot construct order stmt");
+    return rc;
+  }
 
 
   // if (has_aggr_func_expr) {
@@ -252,6 +269,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
+  select_stmt->order_stmt_  = order_stmt;
   stmt                      = select_stmt;
   return RC::SUCCESS;
 }

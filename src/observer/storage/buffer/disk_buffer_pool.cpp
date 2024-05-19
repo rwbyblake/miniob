@@ -680,8 +680,8 @@ RC BufferPoolManager::remove_file(const char *file_name) {
     return rc;
   }
 
-  int remove_ret = 0;
-  if ((remove_ret = ::remove(file_name)) == -1);
+//  int remove_ret = 0;
+//  if ((remove_ret = ::remove(file_name)) == -1);
 
   return rc;
 }

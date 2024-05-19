@@ -130,6 +130,9 @@ AggrFuncType get_aggr_func_type(char *func_name)
         LE
         GE
         NE
+        ASC
+        ORDER
+        BY
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
@@ -144,6 +147,8 @@ AggrFuncType get_aggr_func_type(char *func_name)
   std::vector<Expression *> *       expression_list;
   std::vector<Value> *              value_list;
   std::vector<ConditionSqlNode> *   condition_list;
+  OrderSqlNode *                    order_unit;
+  std::vector<OrderSqlNode> *       order_list;
   std::vector<RelAttrSqlNode> *     rel_attr_list;
   std::vector<std::string> *        relation_list;
   char *                            string;
@@ -173,6 +178,9 @@ AggrFuncType get_aggr_func_type(char *func_name)
 %type <value_list>          value_list
 %type <condition_list>      where
 %type <condition_list>      condition_list
+%type <order_list>          order_list
+%type <order_list>          order
+%type <order_unit>          order_unit
 %type <rel_attr_list>       select_attr
 %type <relation_list>       rel_list
 %type <rel_attr_list>       attr_list
@@ -522,7 +530,7 @@ update_stmt:      /*  update 语句的语法解析树*/
     }
     ;
 select_stmt:        /*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where
+    SELECT select_attr FROM ID rel_list where order
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
@@ -539,6 +547,10 @@ select_stmt:        /*  select 语句的语法解析树*/
       if ($6 != nullptr) {
         $$->selection.conditions.swap(*$6);
         delete $6;
+      }
+      if ($7 != nullptr) {
+        $$->selection.orders.swap(*$7);
+        delete $7;
       }
       free($4);
     }
@@ -783,7 +795,53 @@ condition:
       delete $3;
     }
     ;
-
+order_unit:
+	rel_attr
+	{
+    $$ = new OrderSqlNode();//默认是升序
+    $$->attr = *$1;
+    $$->isAsc = true;
+	}
+	|
+	rel_attr DESC
+	{
+    $$ = new OrderSqlNode();
+    $$->attr = *$1;
+    $$->isAsc = false;
+	}
+	|
+	rel_attr ASC
+	{
+    $$ = new OrderSqlNode();//默认是升序
+    $$->attr = *$1;
+    $$->isAsc = true;
+	}
+	;
+order_list:
+	order_unit
+	{
+    $$ = new std::vector<OrderSqlNode>;
+    $$->emplace_back(*$1);
+    delete $1;
+	}
+    |
+	order_unit COMMA order_list
+	{
+    $3->emplace_back(*$1);
+    $$ = $3;
+    delete $1;
+	}
+	;
+order:
+	/* empty */ {
+   $$ = nullptr;
+    }
+	| ORDER BY order_list
+	{
+      $$ = $3;
+      std::reverse($$->begin(),$$->end());
+	}
+	;
 comp_op:
       EQ { $$ = EQUAL_TO; }
     | LT { $$ = LESS_THAN; }

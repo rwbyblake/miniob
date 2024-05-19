@@ -363,7 +363,7 @@ int Value::get_date() const
       int date = -1;
       RC  rc   = str_to_date(str_value_.c_str(), date);
       if (rc != RC::SUCCESS)
-        LOG_WARN("Failed to conver data type. str=%s, target_type=%s", str_value_, "DATES");
+        LOG_WARN("Failed to conver data type. str=%s, target_type=%s", str_value_.c_str(), "DATES");
       return date;
     } break;
 

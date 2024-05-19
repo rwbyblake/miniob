@@ -29,4 +29,8 @@ docs/book
 
 MiniOB_dataset/*
 data/*
+lex_sql.h
+lex_sql.cpp
 
+yacc_sql.hpp
+yacc_sql.cpp

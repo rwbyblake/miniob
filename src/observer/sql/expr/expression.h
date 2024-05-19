@@ -43,7 +43,6 @@ enum class ExprType
   ARITHMETIC,   ///< 算术运算
   AGGRFUNCTION, ///< 聚集函数
   EXPRLIST,     ///< 表达式列表
-
 };
 
 /**
