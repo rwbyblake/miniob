@@ -22,6 +22,8 @@ See the Mulan PSL v2 for more details. */
 
 class Expression;
 
+typedef enum { AGG_MAX, AGG_MIN, AGG_SUM, AGG_AVG, AGG_COUNT, AGGR_FUNC_TYPE_NUM } AggrFuncType;
+
 /**
  * @defgroup SQLParser SQL Parser
  */
@@ -37,6 +39,8 @@ struct RelAttrSqlNode
 {
   std::string relation_name;   ///< relation name (may be NULL) 表名
   std::string attribute_name;  ///< attribute name              属性名
+  bool is_aggr;
+  AggrFuncType aggr_type;
 };
 
 /**

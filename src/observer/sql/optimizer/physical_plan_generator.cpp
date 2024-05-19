@@ -36,6 +36,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/optimizer/physical_plan_generator.h"
 #include "sql/operator/update_logical_operator.h"
 #include "sql/operator/update_physical_operator.h"
+#include "sql/operator/aggr_logical_operator.h"
+#include "sql/operator/aggr_physical_operator.h"
 
 using namespace std;
 
@@ -78,6 +80,9 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
 
     case LogicalOperatorType::JOIN: {
       return create_plan(static_cast<JoinLogicalOperator &>(logical_operator), oper);
+    } break;
+    case LogicalOperatorType::AGGR: {
+      return create_plan(static_cast<AggrLogicalOperator &>(logical_operator), oper);
     } break;
 
     default: {
@@ -315,5 +320,30 @@ RC PhysicalPlanGenerator::create_plan(CalcLogicalOperator &logical_oper, std::un
 
   CalcPhysicalOperator *calc_oper = new CalcPhysicalOperator(std::move(logical_oper.expressions()));
   oper.reset(calc_oper);
+  return rc;
+}
+RC PhysicalPlanGenerator::create_plan(AggrLogicalOperator &aggr_oper, std::unique_ptr<PhysicalOperator> &oper)
+{
+  vector<unique_ptr<LogicalOperator>> &child_opers = aggr_oper.children();
+  unique_ptr<PhysicalOperator> child_phy_oper;
+
+  RC rc = RC::SUCCESS;
+  if (!child_opers.empty()) {
+    LogicalOperator *child_oper = child_opers.front().get();
+    rc = create(*child_oper, child_phy_oper);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create aggr logical operator's child physical operator. rc=%s", strrc(rc));
+      return rc;
+    }
+  }
+
+  AggrPhysicalOperator *aggr_operator = new AggrPhysicalOperator(std::move(aggr_oper.aggr_exprs()));
+  if (child_phy_oper) {
+    aggr_operator->add_child(std::move(child_phy_oper));
+  }
+
+  oper = unique_ptr<PhysicalOperator>(aggr_operator);
+
+  LOG_TRACE("create a aggr physical operator");
   return rc;
 }

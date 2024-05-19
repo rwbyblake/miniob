@@ -410,3 +410,55 @@ RC type_change(AttrType target_type, Value &value)
   }
   return RC::SUCCESS;
 }
+const Value& Value::min(const Value &a, const Value &b)
+{
+  if (a.is_null()) {
+    return b;  // even if b is also null
+  }
+  return a.compare(b) <= 0 ? a : b;
+}
+const Value& Value::max(const Value &a, const Value &b)
+{
+  if (a.is_null()) {
+    return b;  // even if b is also null
+  }
+  return a.compare(b) >= 0 ? a : b;
+}
+
+const Value Value::add(const Value &left, const Value &right)
+{
+  Value result_cell;
+  if (left.is_null() || right.is_null()) {
+    result_cell.set_null();
+    return result_cell;
+  }
+  if (left.attr_type() == INTS && right.attr_type() == INTS) {
+    int result = left.get_int()+right.get_int();
+    result_cell.set_int(result);
+  } else {
+    double tmp_left = left.get_float();
+    double tmp_right = right.get_float();
+    double result = tmp_left + tmp_right;
+    result_cell.set_float(result);
+  }
+  return result_cell;
+}
+
+const Value Value::div(const Value &left, const Value &right)
+{
+  Value result_cell;
+  if (left.is_null() || right.is_null()) {
+    result_cell.set_null();
+    return result_cell;
+  }
+  if(right.get_float() == 0) {
+    result_cell.set_null();
+  }
+  else {
+    double tmp_left = left.get_float();
+    double tmp_right = right.get_float();
+    double result = tmp_left / tmp_right;
+    result_cell.set_float(result);
+  }
+  return result_cell;
+}

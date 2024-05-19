@@ -207,10 +207,15 @@ RC ComparisonExpr::get_value(const Tuple &tuple, Value &value) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-ConjunctionExpr::ConjunctionExpr(Type type, vector<unique_ptr<Expression>> &children)
+ConjunctionExpr::ConjunctionExpr(Type type, vector<unique_ptr<Expression>> children)
     : conjunction_type_(type), children_(std::move(children))
 {}
-
+ConjunctionExpr::ConjunctionExpr(Type type, Expression* left, Expression* right)
+    : conjunction_type_(type)
+{
+  children_.emplace_back(left);
+  children_.emplace_back(right);
+}
 RC ConjunctionExpr::get_value(const Tuple &tuple, Value &value) const
 {
   RC rc = RC::SUCCESS;
@@ -370,4 +375,141 @@ RC ArithmeticExpr::try_get_value(Value &value) const
   }
 
   return calc_value(left_value, right_value, value);
+}
+
+// table_map 有表名检查表名(可能是别名) 没表名只能有一个 table 或者用 default table 检查列名
+// table_alias_map 是为了设置 name alias 的时候用
+// NOTE: 是针对 projects 中的 FieldExpr 写的 conditions 中的也可以用 但是处理之后的 name alias 是无用的
+// RC FieldExpr::check_field(const std::unordered_map<std::string, Table *> &table_map,
+//   const std::vector<Table *> &tables, Table* default_table,
+//   const std::unordered_map<std::string, std::string> & table_alias_map)
+// {
+//   ASSERT(field_name_ != "*", "ERROR!");
+//   const char* table_name = table_name_.c_str();
+//   const char* field_name = field_name_.c_str();
+//   Table * table = nullptr;
+//   if(!common::is_blank(table_name)) { //表名不为空
+//     // check table
+//     auto iter = table_map.find(table_name);
+//     if (iter == table_map.end()) {
+//       LOG_WARN("no such table in from list: %s", table_name);
+//       return RC::SCHEMA_FIELD_MISSING;
+//     }
+//     table = iter->second;
+//   } else { // 表名为空，只有列名
+//     if (tables.size() != 1 && default_table == nullptr) {
+//       LOG_WARN("invalid. I do not know the attr's table. attr=%s", this->get_field_name().c_str());
+//       return RC::SCHEMA_FIELD_MISSING;
+//     }
+//     table = default_table ? default_table : tables[0];
+//   }
+//   ASSERT(nullptr != table, "ERROR!");
+//   // set table_name
+//   table_name = table->name();
+//   // check field
+//   const FieldMeta *field_meta = table->table_meta().field(field_name);
+//   if (nullptr == field_meta) {
+//     LOG_WARN("no such field. field=%s.%s", table->name(), field_name);
+//     return RC::SCHEMA_FIELD_MISSING;
+//   }
+//   // set field_
+//   field_ = Field(table, field_meta);
+//   // set name 没用了 暂时保留它
+//   bool is_single_table = (tables.size() == 1);
+//   if(is_single_table) {
+//     set_name(field_name_);
+//   } else {
+//     set_name(table_name_ + "." + field_name_);
+//   }
+//   // set alias
+//   if (alias().empty()) {
+//     if (is_single_table) {
+//       set_alias(field_name_);
+//     } else {
+//       auto iter = table_alias_map.find(table_name_);
+//       if (iter != table_alias_map.end()) {
+//         set_alias(iter->second + "." + field_name_);
+//       } else {
+//         set_alias(table_name_ + "." + field_name_);
+//       }
+//     }
+//   }
+//   return RC::SUCCESS;
+// }
+
+AggrFuncExpr::AggrFuncExpr(AggrFuncType type, Expression *param)
+    : AggrFuncExpr(type, std::unique_ptr<Expression>(param))
+{}
+AggrFuncExpr::AggrFuncExpr(AggrFuncType type, unique_ptr<Expression> param)
+    : type_(type), param_(std::move(param))
+{
+  //
+  auto check_is_constexpr = [](const Expression* expr) -> RC {
+    if (expr->type() == ExprType::FIELD) {
+      return RC::INTERNAL;
+    }
+    return RC::SUCCESS;
+  };
+  if (RC::SUCCESS == param_->traverse_check(check_is_constexpr)) {
+    param_is_constexpr_ = true;
+  }
+}
+
+std::string AggrFuncExpr::get_func_name() const
+{
+  switch (type_) {
+    case AggrFuncType::AGG_MAX:
+      return "max";
+    case AggrFuncType::AGG_MIN:
+      return "min";
+    case AggrFuncType::AGG_SUM:
+      return "sum";
+    case AggrFuncType::AGG_AVG:
+      return "avg";
+    case AggrFuncType::AGG_COUNT:
+      return "count";
+    default:
+      break;
+  }
+  return "unknown_aggr_fun";
+}
+
+AttrType AggrFuncExpr::value_type() const
+{
+  switch (type_) {
+    case AggrFuncType::AGG_MAX:
+    case AggrFuncType::AGG_MIN:
+    case AggrFuncType::AGG_SUM:
+      return param_->value_type();
+      break;
+    case AggrFuncType::AGG_AVG:
+      return FLOATS;
+      break;
+    case AggrFuncType::AGG_COUNT:
+      return INTS;
+      break;
+    default:
+      return UNDEFINED;
+      break;
+  }
+  return UNDEFINED;
+}
+
+//Project 算子的cell_at 会调用该函数取得聚集函数最后计算的结果,传入的Tuple 就是gropuby 中的 grouptuple
+RC AggrFuncExpr::get_value(const Tuple &tuple, Value &cell) const
+{
+  TupleCellSpec spec(name().c_str());
+  //int index = 0;
+  // spec.set_agg_type(get_aggr_func_type());
+  // if(is_first_)
+  // {
+  //   bool & is_first_ref = const_cast<bool&>(is_first_);
+  //   is_first_ref = false;
+    
+  // }
+  // else
+  // {
+  //   return tuple.cell_at(index_, cell);
+  // }
+  return tuple.find_cell(spec,cell);
 }

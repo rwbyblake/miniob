@@ -383,3 +383,192 @@ private:
   Tuple *left_  = nullptr;
   Tuple *right_ = nullptr;
 };
+
+class AggrTuple : public Tuple {
+public:
+  AggrTuple() = default;
+  virtual ~AggrTuple() = default;
+
+  void set_tuple(Tuple *tuple)
+  {
+    this->tuple_ = tuple;
+  }
+
+  int cell_num() const override
+  {
+    return num_;
+  }
+
+  RC cell_at(int index, Value &cell) const override
+  {
+    if (tuple_ == nullptr) {
+      return RC::INTERNAL;
+    }
+    if (index < 0 || index >= (int)(aggr_results_.size())) {
+      return RC::NOTFOUND;
+    }
+
+    cell = aggr_results_[index].result();
+    return RC::SUCCESS;
+  }
+
+  size_t find_agg_index_by_name(std::string expr_name) const
+  {
+    for(size_t i = 0; i < (size_t)aggr_results_.size(); ++i) {
+      if(expr_name == aggr_results_[i].name()) {
+        return i;
+      }
+    }
+    return -1;
+  }
+  RC find_cell(const TupleCellSpec &spec, Value &cell) const override
+  {
+    // 找不到再根据别名从聚集函数表达式里面找
+    //return find_cell(std::string(spec.alias()), cell,index);
+    int index = find_agg_index_by_name(std::string(spec.alias()));
+    if (index < 0 || index >= (int)aggr_results_.size()) {
+      return RC::NOTFOUND;
+    }
+    cell = aggr_results_[index].result();
+    return RC::SUCCESS;
+  }
+
+  void init(std::vector<std::unique_ptr<AggrFuncExpr>> &&aggr_exprs)
+  {
+    aggr_results_.resize(aggr_exprs.size());
+    num_ = aggr_exprs.size();
+    for (size_t i = 0; i < (size_t)aggr_exprs.size(); ++i) {
+      aggr_results_[i].set_expr(std::move(aggr_exprs[i]));
+    }
+    aggr_exprs.clear();
+  }
+  void reset()
+  {
+    for (auto& res : aggr_results_) {
+      res.reset();
+    }
+  }
+  void do_aggregate_first()
+  {
+    // first row in current group
+    for (size_t i = 0; i < (size_t)aggr_results_.size(); ++i) {
+      aggr_results_[i].init(*tuple_);
+    }
+  }
+  void do_aggregate()
+  {
+    // other rows in current group
+    for (auto& ar : aggr_results_) {
+      ar.advance(*tuple_);
+    }
+  }
+  void do_aggregate_done()
+  {
+    // set result for current group
+    for (auto& ar : aggr_results_) {
+      ar.finish();
+    }
+  }
+
+  class AggrExprResults {
+  public:
+    void init(const Tuple& tuple)
+    {
+      // 1. reset
+      count_ = 0;
+      // 2. count(1) count(*) count(1+1)
+      if (expr_->is_count_constexpr()) {
+        return;
+      }
+      if (expr_->is_sum_avg()) {
+        result_.set_int(0);
+        return;
+      }
+      // 3. get current value and set result_
+      expr_->get_param()->get_value(tuple, result_);
+      return;
+    }
+    void advance(const Tuple& tuple)
+    {
+      // 1. count(1) count(*) count(1+1)
+      if (expr_->is_count_constexpr()) {
+        count_++;
+        return;
+      }
+      // 2. get current value
+      Value temp;
+      expr_->get_param()->get_value(tuple, temp);
+      // 4. update status
+      count_++;
+      // 6. do aggr calc
+      switch (expr_->get_aggr_func_type()) {
+        case AggrFuncType::AGG_COUNT: {
+          // do nothing
+        } break;
+        case AggrFuncType::AGG_AVG:
+        case AggrFuncType::AGG_SUM: {
+          result_.add(temp);
+        } break;
+        case AggrFuncType::AGG_MAX: {
+          if (result_ < temp) {
+            result_ = temp;
+          }
+        } break;
+        case AggrFuncType::AGG_MIN: {
+          if (result_ > temp) {
+            result_ = temp;
+          }
+        } break;
+        default: {
+          LOG_ERROR("Unsupported AggrFuncType");
+        } break;
+      }
+    }
+    void finish()
+    {
+      // 1. count(*) count(1) count(1+1) count(id)
+      if (expr_->get_aggr_func_type() == AGG_COUNT) {
+        result_.set_int(count_);
+        return;
+      }
+      // 3. other situation
+      switch (expr_->get_aggr_func_type()) {
+        case AggrFuncType::AGG_COUNT: {
+          result_.set_int(count_);
+        } break;
+        case AggrFuncType::AGG_AVG: {
+          result_.div(Value(count_));
+        } break;
+        default: {
+          // do nothing for other type
+        } break;
+      }
+    }
+    void reset()
+    {
+      count_ = 0;
+    }
+    const std::string name() const
+    {
+      return expr_->name();
+    }
+    const Value& result() const
+    {
+      return result_;
+    }
+    void set_expr(std::unique_ptr<AggrFuncExpr> expr)
+    {
+      expr_ = std::move(expr);
+    }
+  private:
+    std::unique_ptr<AggrFuncExpr> expr_;
+    Value result_;
+    int count_ = 0;
+  };
+
+private:
+  int count_ = 0;
+  std::vector<AggrExprResults> aggr_results_;
+  int num_ = 0;
+  Tuple *tuple_ = nullptr;
+};

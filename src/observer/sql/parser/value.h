@@ -83,6 +83,55 @@ public:
   std::string to_string() const;
 
   int compare(const Value &other) const;
+  static const Value &max(const Value &a, const Value &b);
+  static const Value &min(const Value &a, const Value &b);
+  static const Value add(const Value &left, const Value &right);
+  static const Value div(const Value &left, const Value &right);
+
+  void add(const Value& rhs) {
+    *this = Value::add(*this, rhs);
+
+  }
+  void div(const Value& rhs) {
+    *this = Value::div(*this, rhs);
+  }
+
+  bool operator<(const Value &other) {
+    return compare(other) < 0;
+  }
+  bool operator>(const Value &other) {
+    return compare(other) > 0;
+  }
+
+  bool operator==(const Value &other) const
+  {
+    return 0 == compare(other);
+  }
+
+  bool operator!=(const Value &other) const
+  {
+    return 0 != compare(other);
+  }
+
+  bool operator<(const Value &other) const
+  {
+    return compare(other) < 0;
+  }
+
+  bool operator<=(const Value &other) const
+  {
+    return compare(other) <= 0;
+  }
+
+  bool operator>(const Value &other) const
+  {
+    return  compare(other) > 0;
+  }
+
+  bool operator>=(const Value &other) const
+  {
+    return compare(other) >= 0;
+  }
 
   const char *data() const;
   int         length() const { return length_; }
