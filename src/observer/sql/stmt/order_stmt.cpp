@@ -14,7 +14,7 @@ RC OrderStmt::create(Db *db, Table *default_table, std::unordered_map<std::strin
   stmt = nullptr;
   if (orders.empty()) return rc;
   OrderStmt *tmp_stmt = new OrderStmt();
-  for (int i = 0; i < (int)orders.size(); i++) {
+  for (int i = 0; i < orders.size(); i++) {
     std::unique_ptr<OrderUnit> order_unit = nullptr;
 
     rc = create_order_unit(db, default_table, tables, orders[i], std::move(order_unit));

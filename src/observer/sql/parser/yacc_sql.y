@@ -133,7 +133,6 @@ AggrFuncType get_aggr_func_type(char *func_name)
         ASC
         ORDER
         BY
-        ANALYZE
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
@@ -205,7 +204,6 @@ AggrFuncType get_aggr_func_type(char *func_name)
 %type <sql_node>            commit_stmt
 %type <sql_node>            rollback_stmt
 %type <sql_node>            load_data_stmt
-%type <sql_node>            analyze_data_stmt
 %type <sql_node>            explain_stmt
 %type <sql_node>            set_variable_stmt
 %type <sql_node>            help_stmt
@@ -244,7 +242,6 @@ command_wrapper:
   | commit_stmt
   | rollback_stmt
   | load_data_stmt
-  | analyze_data_stmt
   | explain_stmt
   | set_variable_stmt
   | help_stmt
@@ -868,20 +865,6 @@ load_data_stmt:
       $$->load_data.file_name = tmp_file_name;
       free($7);
       free(tmp_file_name);
-    }
-    ;
-
-analyze_data_stmt:
-    ANALYZE TABLE ID LBRACE ID rel_list RBRACE
-    {
-      $$ = new ParsedSqlNode(SCF_ANALYZE);
-      $$->analyze_data.table_name = strdup($3);  // 复制表名字符串
-      if ($6 != nullptr)
-        $$->analyze_data.column_names.swap(*$6);            // 使用列名列表
-      $$->analyze_data.column_names.emplace_back($5);
-      std::reverse($$->analyze_data.column_names.begin(), $$->analyze_data.column_names.end());
-      free($3);                                 // 释放由 Bison 分配的内存
-      free($5);
     }
     ;
 

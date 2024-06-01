@@ -241,12 +241,6 @@ struct LoadDataSqlNode
   std::string file_name;
 };
 
-struct AnalyzeSqlNode
-{
-  std::string table_name;
-  std::vector<std::string> column_names;
-};
-
 /**
  * @brief 设置变量的值
  * @ingroup SQLParser
@@ -295,7 +289,6 @@ enum SqlCommandFlag
   SCF_SELECT,
   SCF_INSERT,
   SCF_UPDATE,
-  SCF_ANALYZE,
   SCF_DELETE,
   SCF_CREATE_TABLE,
   SCF_DROP_TABLE,
@@ -338,7 +331,6 @@ public:
   LoadDataSqlNode     load_data;
   ExplainSqlNode      explain;
   SetVariableSqlNode  set_variable;
-  AnalyzeSqlNode      analyze_data;
 
 public:
   ParsedSqlNode();
