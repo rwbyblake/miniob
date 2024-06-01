@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "event/session_event.h"
 #include "event/sql_event.h"
 #include "session/session.h"
-
+#include "sql/operator/table_scan_physical_operator.h"
 RC SqlTaskHandler::handle_event(Communicator *communicator)
 {
   SessionEvent *event = nullptr;
@@ -38,8 +38,11 @@ RC SqlTaskHandler::handle_event(Communicator *communicator)
   (void)handle_sql(&sql_event);
 
   bool need_disconnect = false;
+  clock_t event_start = clock();
 
   rc = communicator->write_result(event, need_disconnect);
+  LOG_INFO("scan oper used in %d", TableScanPhysicalOperator::count_);
+  TableScanPhysicalOperator::count_ = 0;
   LOG_INFO("write result return %s", strrc(rc));
   event->session()->set_current_request(nullptr);
   Session::set_current_session(nullptr);
@@ -49,6 +52,7 @@ RC SqlTaskHandler::handle_event(Communicator *communicator)
   if (need_disconnect) {
     return RC::INTERNAL;
   }
+  LOG_INFO("execute time = %lfs", (clock() - event_start) / 1000000.0);
   return RC::SUCCESS;
 }
 

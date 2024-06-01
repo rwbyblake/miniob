@@ -15,6 +15,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/table_scan_physical_operator.h"
 #include "event/sql_debug.h"
 #include "storage/table/table.h"
+int TableScanPhysicalOperator::count_ = 0; // 或其他初始值
+
 
 using namespace std;
 
@@ -43,6 +45,9 @@ RC TableScanPhysicalOperator::next()
     }
 
     tuple_.set_record(&current_record_);
+//    LOG_INFO("RECORD");
+    count_++;
+//    LOG_INFO("%d", count_);
     rc = filter(tuple_, filter_result);
     if (rc != RC::SUCCESS) {
       return rc;
