@@ -201,7 +201,6 @@ RC OptimizeStage::optimize_join_oper(unique_ptr<LogicalOperator> &oper) {
             rc = find_histogram(table_name, field_name, ana);
             if (rc == RC::NOTFOUND) ana.record_num = -1;
           }
-          // TODO 支持更多情况
           ratio = ana.count_ratio(value.get_int());
           LOG_INFO("ratio for %s = %lf", table_name.c_str(), ratio);
         }
