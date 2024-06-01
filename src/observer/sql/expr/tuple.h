@@ -199,7 +199,15 @@ public:
     }
     return RC::NOTFOUND;
   }
-
+  RC column_at(int index, std::string &column) {
+    if (index < 0 || index >= static_cast<int>(speces_.size())) {
+      LOG_WARN("invalid argument. index=%d", index);
+      return RC::INVALID_ARGUMENT;
+    }
+    FieldExpr *field_expr = speces_[index];
+    column = field_expr->get_field_name();
+    return RC::SUCCESS;
+  }
 #if 0
   RC cell_spec_at(int index, const TupleCellSpec *&spec) const override
   {
