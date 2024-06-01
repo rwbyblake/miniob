@@ -34,6 +34,7 @@ public:
 
   void                                      set_predicates(std::vector<std::unique_ptr<Expression>> &&exprs);
   std::vector<std::unique_ptr<Expression>> &predicates() { return predicates_; }
+  std::vector<Field> fields() const { return fields_; }
 
 private:
   Table             *table_ = nullptr;

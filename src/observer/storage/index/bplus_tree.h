@@ -112,7 +112,7 @@ public:
           break;
         }
         default: {
-          ASSERT(false, "unknown attr type. %d", attr_type_);
+          ASSERT(false, "unknown attr type. %d", attr_type_[i]);
           return 0;
         }
       }
@@ -226,7 +226,7 @@ public:
           break;
         }
         default: {
-          ASSERT(false, "unknown attr type. %d", attr_type_);
+          ASSERT(false, "unknown attr type. %d", attr_type_[idx]);
         }
       }
     }
