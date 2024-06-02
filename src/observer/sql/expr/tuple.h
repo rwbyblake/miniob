@@ -148,6 +148,15 @@ public:
 
   int cell_num() const override { return speces_.size(); }
 
+  RC column_at(int index, std::string &column) {
+    if (index < 0 || index >= static_cast<int>(speces_.size())) {
+      LOG_WARN("invalid argument. index=%d", index);
+      return RC::INVALID_ARGUMENT;
+    }
+    FieldExpr *field_expr = speces_[index];
+    column = field_expr->get_field_name();
+    return RC::SUCCESS;
+  }
   RC cell_at(int index, Value &cell) const override
   {
 

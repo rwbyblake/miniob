@@ -27,6 +27,7 @@ class Table;
 class TableScanPhysicalOperator : public PhysicalOperator
 {
 public:
+  static int count_;
   TableScanPhysicalOperator(Table *table, bool readonly) : table_(table), readonly_(readonly) {}
 
   virtual ~TableScanPhysicalOperator() = default;

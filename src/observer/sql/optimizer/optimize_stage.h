@@ -13,6 +13,8 @@ See the Mulan PSL v2 for more details. */
 //
 
 #pragma once
+#include <string>
+#include <utility>
 
 #include "common/rc.h"
 #include "sql/operator/logical_operator.h"
@@ -21,10 +23,53 @@ See the Mulan PSL v2 for more details. */
 #include "sql/optimizer/physical_plan_generator.h"
 #include "sql/optimizer/rewriter.h"
 
+const double seq_page_cost = 1.0;
+const double random_page_cost = 4.0;
+const double cpu_tuple_cost = 0.01;
+const double cpu_index_tuple_cost = 0.005;
+const double cpu_operator_cost = 0.0025;
+
 class SQLStageEvent;
 class LogicalOperator;
 class Stmt;
 
+class analyse
+{
+public:
+  analyse() = default;
+  analyse(std::string table, std::string column, std::string histogram_str, int recordNum) {
+    table_name = std::move(table);
+    column_name = std::move(column);
+    std::istringstream iss(histogram_str);
+    char ig; // 用于忽略非数字字符
+    int first, second;
+
+    while (iss >> ig >> first >> ig >> second >> ig) {
+      histogram.emplace_back(first, second);
+      // 可选地读取分隔符逗号，处理连续的pair
+      iss >> ig;
+    }
+    record_num = recordNum;
+  }
+  double count_ratio(int num) {
+    for (int i = 0; i < histogram.size(); i++) {
+      if (num <= histogram[i].second && num >= histogram[i].first) {
+        double sub_ratio = (num - histogram[i].first) * 1.0 / (histogram[i].second - histogram[i].first);
+        double total_ratio = i * 1.0 / histogram.size();
+        return sub_ratio * 1.0 / histogram.size() + total_ratio;
+      } else if (num < histogram[i].first) {
+        double total_ratio = i * 1.0 / histogram.size();
+        return total_ratio;
+      }
+    }
+    return 1.0;
+  }
+
+  std::string table_name;
+  std::string column_name;
+  std::vector<std::pair<int, int>> histogram;
+  int record_num;
+};
 /**
  * @brief 将解析后的Statement转换成执行计划，并进行优化
  * @ingroup SQLStage
@@ -61,7 +106,14 @@ private:
    * @details 当前什么都没做。可以增加每个逻辑计划的代价模型，然后根据代价模型进行优化。
    * @param logical_operator 需要优化的逻辑计划
    */
-  RC optimize(std::unique_ptr<LogicalOperator> &logical_operator);
+  RC optimize(std::unique_ptr<LogicalOperator> &logical_operator, SQLStageEvent *sql_event);
+  RC optimize_join_oper(std::unique_ptr<LogicalOperator> &oper);
+  RC find_histogram(const std::string& table_name, std::string column_name, analyse &ana);
+  RC reorganize_oper(std::set<int> S, std::unique_ptr<LogicalOperator> &oper);
+  double minimal_cost(std::set<int> S, std::unique_ptr<LogicalOperator> &oper);
+  void generate_all_set(std::set<int> S);
+  double cal_cost(std::set<int> a, std::set<int> b);
+  RC release_optimize_data();
 
   /**
    * @brief 根据逻辑计划生成物理计划
@@ -77,4 +129,14 @@ private:
   LogicalPlanGenerator  logical_plan_generator_;   ///< 根据SQL生成逻辑计划
   PhysicalPlanGenerator physical_plan_generator_;  ///< 根据逻辑计划生成物理计划
   Rewriter              rewriter_;                 ///< 逻辑计划改写
+private:
+  std::vector<analyse>  analyses;
+  std::map<std::set<int>, double> min_set_scan;
+  std::map<std::set<int>, double> rel_record_num;
+  std::map<std::set<int>, double> merge_cost;
+  std::map<std::set<int>, double> min_cost;
+  std::vector<std::set<std::set<int>>> all_length_set;
+  std::map<int, double> ratio_map;
+  std::map<int, int> record_num_map;
+  std::vector<std::unique_ptr<LogicalOperator>> table_get_opers;
 };
