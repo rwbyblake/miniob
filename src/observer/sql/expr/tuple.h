@@ -384,20 +384,15 @@ private:
   Tuple *right_ = nullptr;
 };
 
-class AggrTuple : public Tuple {
+class AggrTuple : public Tuple
+{
 public:
-  AggrTuple() = default;
+  AggrTuple()          = default;
   virtual ~AggrTuple() = default;
 
-  void set_tuple(Tuple *tuple)
-  {
-    this->tuple_ = tuple;
-  }
+  void set_tuple(Tuple *tuple) { this->tuple_ = tuple; }
 
-  int cell_num() const override
-  {
-    return num_;
-  }
+  int cell_num() const override { return num_; }
 
   RC cell_at(int index, Value &cell) const override
   {
@@ -414,8 +409,8 @@ public:
 
   size_t find_agg_index_by_name(std::string expr_name) const
   {
-    for(size_t i = 0; i < (size_t)aggr_results_.size(); ++i) {
-      if(expr_name == aggr_results_[i].name()) {
+    for (size_t i = 0; i < (size_t)aggr_results_.size(); ++i) {
+      if (expr_name == aggr_results_[i].name()) {
         return i;
       }
     }
@@ -424,7 +419,7 @@ public:
   RC find_cell(const TupleCellSpec &spec, Value &cell) const override
   {
     // 找不到再根据别名从聚集函数表达式里面找
-    //return find_cell(std::string(spec.alias()), cell,index);
+    // return find_cell(std::string(spec.alias()), cell,index);
     int index = find_agg_index_by_name(std::string(spec.alias()));
     if (index < 0 || index >= (int)aggr_results_.size()) {
       return RC::NOTFOUND;
@@ -444,7 +439,7 @@ public:
   }
   void reset()
   {
-    for (auto& res : aggr_results_) {
+    for (auto &res : aggr_results_) {
       res.reset();
     }
   }
@@ -458,21 +453,22 @@ public:
   void do_aggregate()
   {
     // other rows in current group
-    for (auto& ar : aggr_results_) {
+    for (auto &ar : aggr_results_) {
       ar.advance(*tuple_);
     }
   }
   void do_aggregate_done()
   {
     // set result for current group
-    for (auto& ar : aggr_results_) {
+    for (auto &ar : aggr_results_) {
       ar.finish();
     }
   }
 
-  class AggrExprResults {
+  class AggrExprResults
+  {
   public:
-    void init(const Tuple& tuple)
+    void init(const Tuple &tuple)
     {
       // 1. reset
       count_ = 0;
@@ -488,7 +484,7 @@ public:
       expr_->get_param()->get_value(tuple, result_);
       return;
     }
-    void advance(const Tuple& tuple)
+    void advance(const Tuple &tuple)
     {
       // 1. count(1) count(*) count(1+1)
       if (expr_->is_count_constexpr()) {
@@ -544,34 +540,23 @@ public:
         } break;
       }
     }
-    void reset()
-    {
-      count_ = 0;
-    }
-    const std::string name() const
-    {
-      return expr_->name();
-    }
-    const Value& result() const
-    {
-      return result_;
-    }
-    void set_expr(std::unique_ptr<AggrFuncExpr> expr)
-    {
-      expr_ = std::move(expr);
-    }
+    void              reset() { count_ = 0; }
+    const std::string name() const { return expr_->name(); }
+    const Value      &result() const { return result_; }
+    void              set_expr(std::unique_ptr<AggrFuncExpr> expr) { expr_ = std::move(expr); }
+
   private:
     std::unique_ptr<AggrFuncExpr> expr_;
-    Value result_;
-    int count_ = 0;
+    Value                         result_;
+    int                           count_ = 0;
   };
 
 private:
-  int count_ = 0;
+//  int                          count_ = 0;
   std::vector<AggrExprResults> aggr_results_;
-  int num_ = 0;
-  Tuple *tuple_ = nullptr;
-
+  int                          num_   = 0;
+  Tuple                       *tuple_ = nullptr;
+};
 /**
  * @brief 一些常量值组成的Tuple,用于 orderby 算子中
  * @ingroup Tuple

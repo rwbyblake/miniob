@@ -12,7 +12,7 @@ RC OrderStmt::create(Db *db, Table *default_table, std::unordered_map<std::strin
 {
   RC rc = RC::SUCCESS;
   stmt = nullptr;
-
+  if (orders.empty()) return rc;
   OrderStmt *tmp_stmt = new OrderStmt();
   for (int i = 0; i < orders.size(); i++) {
     std::unique_ptr<OrderUnit> order_unit = nullptr;

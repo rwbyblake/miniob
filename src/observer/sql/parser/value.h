@@ -133,42 +133,7 @@ public:
     return compare(other) >= 0;
   }
 
-  bool operator<(const Value &other) {
-    return compare(other) < 0;
-  }
-  bool operator>(const Value &other) {
-    return compare(other) > 0;
-  }
 
-  bool operator==(const Value &other) const
-  {
-    return 0 == compare(other);
-  }
-
-  bool operator!=(const Value &other) const
-  {
-    return 0 != compare(other);
-  }
-
-  bool operator<(const Value &other) const
-  {
-    return compare(other) < 0;
-  }
-
-  bool operator<=(const Value &other) const
-  {
-    return compare(other) <= 0;
-  }
-
-  bool operator>(const Value &other) const
-  {
-    return  compare(other) > 0;
-  }
-
-  bool operator>=(const Value &other) const
-  {
-    return compare(other) >= 0;
-  }
 
   const char *data() const;
   int         length() const { return length_; }
