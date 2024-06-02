@@ -237,20 +237,26 @@ void AnalyzeExecutor::build_histogram(std::vector<int> &samples, std::vector<std
     int bucket_num = 20;  // 你可以根据需要调整桶的数量
 
     // 计算每个桶的范围
-    int min_value = samples.front();
-    int max_value = samples.back();
-    int range = (max_value - min_value + 1);
+    int range = samples.size();
     int bucket_size = range / bucket_num + (range % bucket_num != 0 ? 1 : 0);
 
     // 初始化直方图桶
     histogram.resize(bucket_num, {1e9, 0});
-
-    // 分配样本到桶中
-    for (int value : samples) {
-        int bucket_index = (value - min_value) / bucket_size;
-        if (bucket_index >= bucket_num) bucket_index = bucket_num - 1; // 防止边界问题
-        histogram[bucket_index].first = std::min(histogram[bucket_index].first, value);
-        histogram[bucket_index].second = std::max(histogram[bucket_index].second, value);
+    vector<vector<int>> bins(bucket_num);
+    for (int i = 0; i < samples.size(); i++) {
+      int bin_index = i / bucket_size;
+      if (bin_index >= bucket_num) bin_index = bucket_num - 1;
+      int value = samples[i];
+      bins[bin_index].push_back(value);
+      histogram[bin_index].first = std::min(histogram[bin_index].first, value);
+      histogram[bin_index].second = std::max(histogram[bin_index].second, value);
     }
+//    // 分配样本到桶中
+//    for (int value : samples) {
+//        int bucket_index = (value - min_value) / bucket_size;
+//        if (bucket_index >= bucket_num) bucket_index = bucket_num - 1; // 防止边界问题
+//        histogram[bucket_index].first = std::min(histogram[bucket_index].first, value);
+//        histogram[bucket_index].second = std::max(histogram[bucket_index].second, value);
+//    }
 }
 

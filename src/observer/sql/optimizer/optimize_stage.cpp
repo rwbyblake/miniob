@@ -154,7 +154,7 @@ double OptimizeStage::minimal_cost(set<int> S, unique_ptr<LogicalOperator> &oper
         double S_A_scan_cost = min_set_scan[S_A];
         double cost = A_scan_cost + S_A_scan_cost * rel_record_num[A] +
                       merge_cost[A] + merge_cost[S_A] +
-                      rel_record_num[A] * rel_record_num[S_A] * cpu_tuple_cost;
+                      rel_record_num[A] * rel_record_num[S_A];
         if (min_cost[S] > cost) {
           min_set_scan[S] = A_scan_cost + S_A_scan_cost * rel_record_num[A];
           rel_record_num[S] = rel_record_num[A] * rel_record_num[S_A];
