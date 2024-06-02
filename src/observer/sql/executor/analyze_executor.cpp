@@ -123,6 +123,7 @@ RC AnalyzeExecutor::execute(SQLStageEvent *sql_event)
   // 获取统计表
   // const char *table_name = astmt;
   Table *table = astmt->table();
+  string origin_table_name = table->name();
   if (nullptr == table) {
     LOG_WARN("no such table. db=%s, table_name=%s", db->name(), table->name());
     return RC::SCHEMA_TABLE_NOT_EXIST;
@@ -152,10 +153,11 @@ RC AnalyzeExecutor::execute(SQLStageEvent *sql_event)
 
   int record_num = 0;
   int sampleSize = 10;
-  double k_percent = 0.2;
+  double k_percent = 1;
   int seen = 0;
   std::default_random_engine generator; // 随机数生成器
   unordered_map<int, vector<int>> samples;
+  for (int idx: index_to_cal) samples[idx] = vector<int>(0);
   while (record_scanner.has_next()) {
     record_num ++;
     rc = record_scanner.next(current_record);
@@ -178,11 +180,11 @@ RC AnalyzeExecutor::execute(SQLStageEvent *sql_event)
         return rc;
       }
 
-      if (seen < sampleSize) {
+      if (samples[i].size() < sampleSize) {
             samples[i].push_back(value.get_int()); // 如果见过的记录少于sampleSize，直接添加
         } else {
             // 随机决定是否替换现有样本
-            std::uniform_int_distribution<int> distribution(0, sampleSize);
+            std::uniform_int_distribution<int> distribution(0, sampleSize - 1);
             int pos = distribution(generator);
             if (pos < sampleSize) {
                 samples[i][pos] = value.get_int(); // 替换位置pos的样本
@@ -200,7 +202,7 @@ RC AnalyzeExecutor::execute(SQLStageEvent *sql_event)
   }
   std::stringstream errmsg;
   for (int idx: index_to_cal) {
-    vector<Value> record_value(fields->size());
+    vector<Value> record_value(5);
     std::vector<std::pair<int, int>> histogram;
     build_histogram(samples[idx], histogram);
     string column_name = fields->at(idx).name();
@@ -210,7 +212,7 @@ RC AnalyzeExecutor::execute(SQLStageEvent *sql_event)
       if (i != (int)histogram.size() - 1) deserialize_stream << ',';
     }
     vector<string> record_string(5);
-    record_string[0] = table_name;
+    record_string[0] = origin_table_name;
     record_string[1] = column_name;
     record_string[2] = to_string(histogram.size());
     record_string[3] = deserialize_stream.str();
@@ -232,7 +234,7 @@ void AnalyzeExecutor::build_histogram(std::vector<int> &samples, std::vector<std
     std::sort(samples.begin(), samples.end());
 
     // 定义直方图的桶数量
-    int bucket_num = 100;  // 你可以根据需要调整桶的数量
+    int bucket_num = 20;  // 你可以根据需要调整桶的数量
 
     // 计算每个桶的范围
     int min_value = samples.front();
@@ -241,7 +243,7 @@ void AnalyzeExecutor::build_histogram(std::vector<int> &samples, std::vector<std
     int bucket_size = range / bucket_num + (range % bucket_num != 0 ? 1 : 0);
 
     // 初始化直方图桶
-    histogram.resize(bucket_num, {0, 0});
+    histogram.resize(bucket_num, {1e9, 0});
 
     // 分配样本到桶中
     for (int value : samples) {
